@@ -98,3 +98,11 @@ npm test
 ```
 
 Incluye pruebas Vitest para cálculos de subtotal y delivery, selección de extras, productos agotados, pedidos pausados y transiciones de estados. **Estas pruebas se incluyen como código pero no pudieron ejecutarse aquí por falta de acceso al registro npm.**
+
+## Fase V0.3 en preparación: Supabase multi-restaurante
+
+La rama `feat/v0.3-supabase-foundation` añade un esquema de datos para varios locales, políticas de acceso RLS, datos ficticios y una revisión de permisos SQL. **La aplicación Angular todavía sigue en modo demostración y NO está conectada a Supabase**. No acepta pedidos reales.
+
+Lee [docs/FASE_03_SUPABASE.md](docs/FASE_03_SUPABASE.md) para configurar un proyecto de desarrollo, aplicar la migración y revisar la separación entre restaurantes antes de integrar Angular y Supabase Auth.
+
+Se conserva intacto el diseño, el carrito y las rutas de la versión V0.2.
