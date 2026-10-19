@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="es-PE">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#fbf8f2" />
+  <meta name="description"
+    content="Brasa Norte: demostración interactiva de carta digital y pedidos para restaurantes." />
+  <title>Brasa Norte · Demo de pedidos digitales</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="app.js" defer></script>
+</head>
+
+<body>
+  <div class="demo-banner"><span class="banner-dot"></span> DEMOSTRACIÓN INTERACTIVA · Ningún pedido ni pago es real ·
+    Los datos se guardan en este navegador</div>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="#inicio" class="brand" id="brandLink" aria-label="Brasa Norte, volver al inicio">
+        <span class="brand-mark">✦</span><span><strong>BRASA<span
+              class="brand-second">NORTE</span></strong><small>POLLERÍA & BURGERS</small></span>
+      </a>
+      <nav class="nav-links" aria-label="Navegación principal"><a href="#menu" id="menuLink">Menú</a><button
+          type="button" class="nav-link" id="howWorks">¿Cómo pedir?</button><button type="button" class="nav-link"
+          id="adminLink">Panel restaurante <span aria-hidden="true">↗</span></button></nav>
+      <button type="button" class="cart-trigger" id="cartButton" aria-label="Abrir carrito"><span
+          aria-hidden="true">🛒</span> <span class="cart-trigger-text">Mi pedido</span><span class="cart-count"
+          id="cartCount">0</span></button>
+    </div>
+  </header>
+  <main id="publicApp">
+    <section class="hero-section" id="inicio">
+      <div class="container hero-grid">
+        <div class="hero-content">
+          <div class="eyebrow"><span class="mini-fire">✳</span> SABOR QUE REÚNE</div>
+          <h1>El antojo de hoy <em>tiene nombre.</em></h1>
+          <p>Pollos a la brasa, hamburguesas y combos que alegran cualquier día. Arma tu pedido en unos pocos pasos.</p>
+          <div class="hero-actions"><a href="#menu" class="btn btn-primary">Ver la carta <span
+                aria-hidden="true">↗</span></a><button type="button" class="btn btn-outline" id="heroCartBtn">Ver mi
+              pedido</button></div>
+          <div class="hero-features"><span>✓ Delivery por zonas</span><span>✓ Recojo en local</span><span>✓ Sin
+              registrarte</span></div><button type="button" class="mobile-admin-link" id="mobileAdminLink">Ver panel del
+            restaurante →</button>
+        </div>
+        <div class="hero-art" aria-label="Ilustración de pollo a la brasa en un plato">
+          <div class="hero-blob"></div>
+          <div class="hero-spark spark-1">✳</div>
+          <div class="hero-spark spark-2">✦</div>
+          <div class="hero-spark spark-3">✧</div>
+          <div class="dish">
+            <div class="dish-inner"><span>🍗</span><span>🍟</span><span>🥗</span></div>
+          </div>
+          <div class="hero-tag tag-top"><span>🔥</span><span>Hecho al momento</span></div>
+          <div class="hero-tag tag-bottom"><strong>100%</strong><span>puro sabor</span></div>
+        </div>
+      </div>
+    </section>
+    <section class="info-strip">
+      <div class="container info-grid"><span>📍 Recojo y delivery local</span><span>🕒 Horario de demo: 11:00 a
+          22:00</span><span>✨ Productos y precios de ejemplo</span></div>
+    </section>
+    <section class="menu-section container" id="menu">
+      <div class="section-kicker">NUESTRA CARTA</div>
+      <div class="section-heading">
+        <div>
+          <h2>Algo rico <em>te espera.</em></h2>
+          <p>Escoge tus favoritos y personalízalos a tu gusto.</p>
+        </div>
+        <div class="search-holder"><label class="sr-only" for="searchInput">Buscar productos</label><span
+            aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="Buscar en la carta..."
+            autocomplete="off" /></div>
+      </div>
+      <div class="category-pills" id="categoryPills" role="group" aria-label="Filtrar categorías"></div>
+      <div class="menu-status" id="menuStatus" aria-live="polite"></div>
+      <div class="product-grid" id="productGrid"></div>
+      <div class="catalog-note"><span>💡</span> Los precios y productos son ficticios. Esta versión funciona como una
+        demostración y no envía pedidos a ningún restaurante.</div>
+    </section>
+    <section class="cta-section">
+      <div class="container cta-inner">
+        <div><span class="section-kicker">ASÍ DE FÁCIL</span>
+          <h2>Eliges. Personalizas.<br /><em>Y disfrutas.</em></h2>
+          <p>Agrega productos al carrito, selecciona tu tipo de entrega y revisa el resumen antes de confirmar una orden
+            de prueba.</p>
+        </div>
+        <div class="step-list">
+          <div><b>01</b><span>Explora la carta</span></div>
+          <div><b>02</b><span>Arma tu carrito</span></div>
+          <div><b>03</b><span>Confirma tu pedido de prueba</span></div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <section id="adminApp" class="admin-app hidden" aria-label="Panel administrativo de demostración">
+    <div class="container admin-layout">
+      <aside class="admin-sidebar">
+        <div class="admin-title"><span class="brand-mark">✦</span>
+          <div><strong>Brasa Norte</strong><small>Panel del restaurante</small></div>
+        </div>
+        <div class="admin-demo">⚠ DEMO · SIN LOGIN REAL</div>
+        <nav class="admin-nav" id="adminNav" aria-label="Secciones administrativas"><button data-tab="orders"
+            class="active">▤ &nbsp; Pedidos</button><button data-tab="products">▦ &nbsp; Productos</button><button
+            data-tab="settings">⚙ &nbsp; Configuración</button></nav><button class="btn btn-outline back-store"
+          type="button" id="backToStore">← Volver a la tienda</button>
+      </aside>
+      <div class="admin-main">
+        <div class="admin-top">
+          <div>
+            <div class="section-kicker">GESTIÓN DEL NEGOCIO</div>
+            <h2 id="adminHeading">Pedidos de prueba</h2>
+            <p id="adminSubhead">Revisa y gestiona las órdenes creadas en este navegador.</p>
+          </div>
+          <div class="admin-top-actions"><span class="demo-pill">● ENTORNO DEMO</span></div>
+        </div>
+        <div id="adminBody"></div>
+      </div>
+    </div>
+  </section>
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div><strong>✦ BRASANORTE</strong>
+        <p>Un ejemplo de plataforma de pedidos para negocios gastronómicos.</p>
+      </div>
+      <div>Proyecto demostrativo · Sin cobros ni pedidos reales</div>
+    </div>
+  </footer>
+  <div id="overlay" class="overlay hidden" aria-hidden="true"></div>
+  <section class="drawer hidden" id="cartDrawer" role="dialog" aria-modal="true" aria-label="Carrito de compras">
+    <div class="drawer-head">
+      <div><small>TU SELECCIÓN</small>
+        <h2>Mi pedido <span id="drawerCount">(0)</span></h2>
+      </div><button type="button" class="icon-button" id="closeCart" aria-label="Cerrar carrito">✕</button>
+    </div>
+    <div class="drawer-content" id="cartContents"></div>
+    <div class="drawer-bottom" id="cartBottom"></div>
+  </section>
+  <section class="modal hidden" id="productModal" role="dialog" aria-modal="true" aria-label="Personalizar producto">
+    <div id="productModalContent"></div>
+  </section>
+  <section class="modal checkout-modal hidden" id="checkoutModal" role="dialog" aria-modal="true"
+    aria-label="Finalizar pedido">
+    <div class="modal-head">
+      <div><small>PASO FINAL</small>
+        <h2>Datos de entrega</h2>
+      </div><button type="button" class="icon-button" id="closeCheckout" aria-label="Cerrar">✕</button>
+    </div>
+    <form id="checkoutForm">
+      <div class="modal-scroll">
+        <div class="callout-soft">🧪 Este formulario es una simulación local. Utiliza datos ficticios. No se realiza
+          ningún pago ni se envía información a un servidor.</div>
+        <div class="form-grid"><label class="field">Nombre para el pedido<input name="customer" required maxlength="60"
+              placeholder="Ej. Cliente de prueba" /></label><label class="field">Teléfono de ejemplo<input name="phone"
+              required maxlength="12" placeholder="Ej. 900000000" inputmode="numeric" pattern="[0-9]{9}"
+              title="Ingresa nueve dígitos ficticios" /></label></div>
+        <div class="field"><span>Tipo de entrega</span>
+          <div class="delivery-options"><label><input type="radio" name="fulfillment" value="delivery"
+                checked /><span>🛵 Delivery</span></label><label><input type="radio" name="fulfillment"
+                value="pickup" /><span>🏬 Recojo en local</span></label></div>
+        </div>
+        <div id="deliveryFields"><label class="field">Zona de reparto<select name="zone" id="zoneSelect">
+              <option value="cercana">Zona cercana — S/5.00</option>
+              <option value="media">Zona intermedia — S/7.00</option>
+              <option value="extendida">Zona extendida — S/9.00</option>
+            </select></label><label class="field">Dirección de ejemplo<input name="address" id="addressInput"
+              maxlength="140" placeholder="Ej. Av. Principal 123 (ficticia)" /></label></div><label class="field">Forma
+          de pago al recibir<select name="payment">
+            <option value="efectivo">Efectivo</option>
+            <option value="yape">Yape / Plin (confirmación manual)</option>
+          </select></label><label class="field">Indicaciones opcionales<textarea name="notes" rows="2" maxlength="220"
+            placeholder="Sin cebolla, referencia, etc."></textarea></label>
+        <div class="checkout-summary" id="checkoutSummary"></div>
+      </div>
+      <div class="modal-foot"><button class="btn btn-primary full-width" type="submit">Crear pedido de prueba · <span
+            id="checkoutTotal">S/0.00</span></button></div>
+    </form>
+  </section>
+  <section class="modal confirmation-modal hidden" id="confirmationModal" role="dialog" aria-modal="true"
+    aria-label="Pedido de prueba creado">
+    <div class="confirmation-content" id="confirmationContent"></div>
+  </section>
+  <div class="toast-stack" id="toastStack" aria-live="polite"></div>
+</body>
+
+</html>

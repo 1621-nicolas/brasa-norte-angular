@@ -1,0 +1,148 @@
+<section class="admin-app" aria-label="Panel de demostración">
+  <div class="container admin-layout">
+    <aside class="admin-sidebar">
+      <div class="admin-title"><span class="brand-mark">✦</span>
+        <div><strong>{{ store.settings().name }}</strong><small>Panel del restaurante</small></div>
+      </div>
+      <div class="admin-demo">⚠ DEMO · SIN LOGIN REAL</div>
+      <nav class="admin-nav" aria-label="Secciones administrativas">
+        <button type="button" [class.active]="tab==='orders'" (click)="changeTab('orders')">▤ &nbsp; Pedidos</button>
+        <button type="button" [class.active]="tab==='products'" (click)="changeTab('products')">▦ &nbsp;
+          Productos</button>
+        <button type="button" [class.active]="tab==='settings'" (click)="changeTab('settings')">⚙ &nbsp;
+          Configuración</button>
+      </nav>
+      <a class="btn btn-outline back-store" routerLink="/r/brasa-norte">← Volver a la tienda</a>
+    </aside>
+    <div class="admin-main">
+      <div class="admin-top">
+        <div>
+          <div class="section-kicker">GESTIÓN DEL NEGOCIO</div>
+          <h2>{{ heading }}</h2>
+          <p>Todos los datos y acciones son de demostración.</p>
+        </div>
+        <div class="admin-top-actions"><span class="demo-pill">● ENTORNO DEMO</span></div>
+      </div>
+      @if (notice) { <div class="micro-banner" role="status">{{ notice }}</div> }
+      @if (tab==='orders') {
+      <div class="stats-grid">
+        <div class="stat-card"><span>Pedidos recibidos</span><strong>{{ store.orders().length }}</strong></div>
+        <div class="stat-card"><span>Pendientes</span><strong>{{ pending }}</strong></div>
+        <div class="stat-card"><span>En proceso</span><strong>{{ processing }}</strong></div>
+        <div class="stat-card"><span>Entregados</span><strong>{{ completed }}</strong></div>
+      </div>
+      <div class="micro-banner">🧪 Los pedidos solo existen en este navegador; no hay ventas ni entregas reales.</div>
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <div>
+            <h3>Historial de pedidos</h3><small>Más recientes primero</small>
+          </div>
+        </div>
+        <div class="orders-list">
+          @for (order of store.orders(); track order.id) {
+          <article class="order-card">
+            <div class="order-top">
+              <div>
+                <h4>{{ order.code }} · {{ order.customer }}</h4>
+                <div class="order-sub">{{ date(order.createdAt) }} · {{ order.fulfillment === 'delivery' ? 'Delivery' :
+                  'Recojo' }}</div>
+              </div><span class="state-pill" [class.confirmado]="order.status==='confirmado'"
+                [class.preparando]="order.status==='preparando'" [class.listo]="order.status==='listo'"
+                [class.en_camino]="order.status==='en_camino'" [class.entregado]="order.status==='entregado'"
+                [class.cancelado]="order.status==='cancelado'">{{ labels[order.status] }}</span>
+            </div>
+            @for (item of order.items; track $index) { <div class="order-line">{{ item.qty }} × {{ item.productName }}
+              @for (extra of item.options; track $index) { · {{ extra.name }} }</div> }
+            @if (order.fulfillment==='delivery') { <div class="order-line">📍 Dirección ficticia: {{ order.address }}
+            </div> }
+            <div class="order-bottom"><strong>Total: {{ format(order.total) }}</strong><span class="order-sub">Pago: {{
+                order.payment }} (sin verificar)</span><span class="order-total"></span>
+              @if (nextStatus(order); as next) { <button class="small-action" type="button"
+                (click)="move(order,next)">{{ nextLabel(order) }}</button> }
+              @if (order.status==='pendiente' || order.status==='confirmado') { <button class="small-action danger"
+                type="button" (click)="move(order,'cancelado')">Cancelar</button> }
+            </div>
+          </article>
+          } @empty { <div class="admin-empty">
+            <div style="font-size:36px">📦</div><b>Sin pedidos todavía</b>
+            <p>Abre la tienda y realiza una compra de demostración para verla aquí.</p><a routerLink="/r/brasa-norte"
+              class="btn btn-outline">Ir a la tienda</a>
+          </div> }
+        </div>
+      </div>
+      }
+      @if (tab==='products') {
+      <div class="micro-banner">✦ Cambia precios y disponibilidad: los cambios se reflejan en la tienda de este
+        navegador.</div>
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <div>
+            <h3>Carta actual</h3><small>{{ store.products().length }} productos registrados</small>
+          </div><button class="small-action" type="button" (click)="newProduct()">+ Producto</button>
+        </div>
+        @for (product of store.products(); track product.id) {
+        <div class="product-admin-row">
+          <div class="product-admin-emoji">{{ product.emoji }}</div>
+          <div class="product-admin-label"><strong>{{ product.name }}</strong><small>{{ product.category }} · {{
+              product.available ? 'Disponible' : 'Agotado' }}</small></div><span class="product-admin-price">{{
+            format(product.price) }}</span><button type="button" class="small-ghost"
+            (click)="edit(product)">Editar</button><button class="toggle" type="button" role="switch"
+            [class.on]="product.available" [attr.aria-checked]="product.available"
+            [attr.aria-label]="'Disponibilidad de '+product.name" (click)="store.toggleProduct(product.id)"></button>
+        </div>
+        }
+      </div>
+      }
+      @if (tab==='settings') {
+      <div class="micro-banner">🧪 El horario es informativo; solo la pausa manual bloquea nuevas órdenes de prueba.
+      </div>
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h3>Información del restaurante</h3>
+        </div>
+        <div class="settings-form">
+          <div class="settings-grid"><label class="field">Nombre comercial<input maxlength="40"
+                [(ngModel)]="editSettings.name"></label><label class="field">WhatsApp ficticio<input inputmode="numeric"
+                maxlength="12" [(ngModel)]="editSettings.phone"></label></div>
+          <label class="field">Horario informativo<input maxlength="50" [(ngModel)]="editSettings.hours"></label>
+          <label class="field">Recepción de pedidos<select [(ngModel)]="editSettings.acceptsOrders">
+              <option [ngValue]="true">Habilitada</option>
+              <option [ngValue]="false">Pausada</option>
+            </select></label>
+          <h3 style="font:800 17px var(--display);margin:8px 0">Tarifas de delivery (S/)</h3>
+          <div class="settings-grid">@for (zone of zones; track zone.key) { <label class="field">{{ zone.name }}<input
+                type="number" min="0" max="99" step="0.5" [(ngModel)]="editSettings.fees[zone.key]"></label> }</div>
+          <button class="btn btn-primary" type="button" (click)="saveSettings()">Guardar cambios</button>
+          <button class="small-ghost" type="button" (click)="reset()">Restablecer todos los datos de prueba</button>
+        </div>
+      </div>
+      }
+    </div>
+  </div>
+</section>
+
+@if (editing) {
+<div class="overlay" (click)="editing=null" aria-hidden="true"></div>
+<section class="modal" role="dialog" aria-modal="true" aria-label="Editar producto">
+  <div class="form-dialog">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h2>{{ isNew ? 'Nuevo producto' : 'Editar producto' }}</h2><button class="icon-button" type="button"
+        aria-label="Cerrar" (click)="editing=null">✕</button>
+    </div>
+    <label class="field">Nombre<input required maxlength="60" [(ngModel)]="editing.name"></label>
+    <label class="field">Descripción<textarea rows="2" maxlength="230"
+        [(ngModel)]="editing.description"></textarea></label>
+    <div class="form-grid"><label class="field">Categoría<select [(ngModel)]="editing.category">@for (cat of categories;
+          track cat) { <option [value]="cat">{{ cat }}</option> }</select></label><label class="field">Precio (S/)<input
+          type="number" min="0.5" max="999.99" step="0.01" [(ngModel)]="editing.price"></label></div>
+    <div class="form-grid"><label class="field">Ilustración<select [(ngModel)]="editing.emoji">@for (emoji of
+          emojiOptions; track emoji) { <option [value]="emoji">{{ emoji }}</option> }</select></label><label
+        class="field">Etiqueta<input maxlength="24" [(ngModel)]="editing.tag"></label></div>
+    <div class="callout-soft">Los complementos precargados se conservan. El editor avanzado de combos llegará en una
+      fase posterior.</div>
+    <div class="form-actions"><button class="btn btn-outline" type="button"
+        (click)="editing=null">Cancelar</button><button class="btn btn-primary" type="button"
+        (click)="saveProduct()">Guardar producto</button></div>
+  </div>
+</section>
+}

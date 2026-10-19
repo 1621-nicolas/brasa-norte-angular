@@ -1,0 +1,224 @@
+<main>
+  <section class="hero-section" id="inicio">
+    <div class="container hero-grid">
+      <div class="hero-content">
+        <div class="eyebrow"><span class="mini-fire">✳</span> SABOR QUE REÚNE</div>
+        <h1>El antojo de hoy <em>tiene nombre.</em></h1>
+        <p>Pollos a la brasa, hamburguesas y combos que alegran cualquier día. Arma tu pedido en unos pocos pasos.</p>
+        <div class="hero-actions"><a class="btn btn-primary" href="/r/brasa-norte#menu">Ver la carta ↗</a><button
+            class="btn btn-outline" type="button" (click)="store.cartOpen.set(true)">Ver mi pedido</button></div>
+        <div class="hero-features"><span>✓ Delivery por zonas</span><span>✓ Recojo en local</span><span>✓ Sin
+            registrarte</span></div>
+        <a class="mobile-admin-link" routerLink="/admin">Ver panel del restaurante →</a>
+      </div>
+      <div class="hero-art" role="img" aria-label="Ilustración de comida en un plato">
+        <div class="hero-blob"></div>
+        <div class="hero-spark spark-1">✳</div>
+        <div class="hero-spark spark-2">✦</div>
+        <div class="hero-spark spark-3">✧</div>
+        <div class="dish">
+          <div class="dish-inner"><span>🍗</span><span>🍟</span><span>🥗</span></div>
+        </div>
+        <div class="hero-tag tag-top"><span>🔥</span><span>Hecho al momento</span></div>
+        <div class="hero-tag tag-bottom"><strong>100%</strong><span>puro sabor</span></div>
+      </div>
+    </div>
+  </section>
+  <section class="info-strip">
+    <div class="container info-grid"><span>📍 Recojo y delivery local</span><span>🕒 Horario demo: {{
+        store.settings().hours }}</span><span>✨ Productos y precios ficticios</span></div>
+  </section>
+  <section class="menu-section container" id="menu">
+    <div class="section-kicker">NUESTRA CARTA</div>
+    <div class="section-heading">
+      <div>
+        <h2>Algo rico <em>te espera.</em></h2>
+        <p>Escoge tus favoritos y personalízalos a tu gusto.</p>
+      </div>
+      <div class="search-holder"><label class="sr-only" for="menuSearch">Buscar productos</label><span
+          aria-hidden="true">⌕</span><input id="menuSearch" type="search" placeholder="Buscar en la carta..."
+          [ngModel]="search()" (ngModelChange)="search.set($event)" /></div>
+    </div>
+    <div class="category-pills" role="group" aria-label="Filtrar categorías">
+      @for (cat of categories; track cat) { <button type="button" [class.active]="category() === cat"
+        (click)="category.set(cat)">{{ cat === 'Todas' ? '✦ Todos' : cat }}</button> }
+    </div>
+    <div class="menu-status" aria-live="polite">{{ shownProducts().length }} productos en la carta</div>
+    <div class="product-grid">
+      @for (product of shownProducts(); track product.id) {
+      <article class="product-card" [class.sold-out]="!product.available">
+        <div class="product-art" [style.--from]="palette(product)[0]" [style.--to]="palette(product)[1]">
+          <div class="product-art-emoji" aria-hidden="true">{{ product.emoji }}</div>@if (product.tag) { <span
+            class="product-label">{{ product.tag }}</span> }
+        </div>
+        <div class="product-card-content">
+          <div class="product-category">{{ product.category }}</div>
+          <h3>{{ product.name }}</h3>
+          <p>{{ product.description }}</p>
+          <div class="product-card-bottom"><span class="product-price">{{ format(product.price) }}</span><button
+              class="add-btn" type="button" [disabled]="!product.available" (click)="openProduct(product)">{{
+              product.available ? '+ Agregar' : 'Agotado' }}</button></div>
+        </div>
+      </article>
+      } @empty { <div class="pill-no-results">No encontramos productos. Prueba con otra categoría.</div> }
+    </div>
+    <div class="catalog-note"><span>💡</span> Demostración: los productos y precios son ficticios. Ninguna orden se
+      envía a un restaurante real.</div>
+  </section>
+  <section class="cta-section" id="como-pedir">
+    <div class="container cta-inner">
+      <div><span class="section-kicker">ASÍ DE FÁCIL</span>
+        <h2>Eliges. Personalizas.<br><em>Y disfrutas.</em></h2>
+        <p>Agrega productos al carrito, selecciona delivery o recojo y confirma una orden de prueba.</p>
+      </div>
+      <div class="step-list">
+        <div><b>01</b><span>Explora la carta</span></div>
+        <div><b>02</b><span>Arma tu carrito</span></div>
+        <div><b>03</b><span>Confirma tu pedido de prueba</span></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+@if (overlayOpen) { <div class="overlay" (click)="closeAll()" aria-hidden="true"></div> }
+
+@if (store.cartOpen()) {
+<section class="drawer" role="dialog" aria-modal="true" aria-label="Carrito de compras">
+  <div class="drawer-head">
+    <div><small>TU SELECCIÓN</small>
+      <h2>Mi pedido <span>({{ store.cartCount() }})</span></h2>
+    </div><button class="icon-button" type="button" (click)="closeAll()" aria-label="Cerrar carrito">✕</button>
+  </div>
+  <div class="drawer-content">
+    @if (!store.cart().length) { <div class="empty-cart">
+      <div class="empty-graphic">🛍️</div>
+      <h3>Tu carrito está vacío</h3>
+      <p>Explora nuestra carta y agrega algo rico para empezar.</p><button type="button" class="btn btn-outline"
+        (click)="closeAll()">Explorar menú</button>
+    </div> }
+    @for (line of store.cart(); track line.lineId) {
+    @if (store.product(line.pid); as product) {
+    <div class="cart-item">
+      <div class="cart-item-emoji">{{ product.emoji }}</div>
+      <div style="flex:1;min-width:0">
+        <h4>{{ product.name }}</h4><small>@for (opt of store.selectedOptions(product,line.choice); track $index) { {{
+          opt.name }} · }</small>
+        <div class="cart-item-price">{{ format(store.lineTotal(line)) }}</div>
+        <div class="cart-item-controls">
+          <div class="qty-stepper"><button type="button" aria-label="Disminuir"
+              (click)="store.changeQuantity(line.lineId,-1)">−</button><span>{{ line.qty }}</span><button type="button"
+              aria-label="Aumentar" (click)="store.changeQuantity(line.lineId,1)">+</button></div><button
+            class="text-button" type="button" (click)="store.removeLine(line.lineId)">Eliminar</button>
+        </div>
+      </div>
+    </div>
+    }
+    }
+  </div>
+  @if (store.cart().length) { <div class="drawer-bottom">
+    <div class="totals-row"><span>Subtotal</span><strong>{{ format(store.subtotal()) }}</strong></div>
+    <div class="totals-row"><span>Costo delivery</span><span>Se calcula al finalizar</span></div>
+    <div class="totals-row grand"><span>Subtotal de productos</span><span>{{ format(store.subtotal()) }}</span></div>
+    <button class="btn btn-primary full-width" type="button" (click)="openCheckout()">Continuar al pedido →</button>
+    <p class="microcopy">Pedido ficticio · Sin cobros ni envío real</p>
+  </div> }
+</section>
+}
+
+@if (modal === 'product' && selectedProduct; as product) {
+<section class="modal" role="dialog" aria-modal="true" aria-label="Personalizar producto">
+  <div class="product-modal-art" [style.--from]="palette(product)[0]" [style.--to]="palette(product)[1]">{{
+    product.emoji }}</div>
+  <div class="modal-info">
+    <div style="display:flex;justify-content:space-between;align-items:start;gap:12px">
+      <div>
+        <div class="product-category">{{ product.category }}</div>
+        <h2>{{ product.name }}</h2>
+      </div><button class="icon-button" type="button" (click)="closeAll()" aria-label="Cerrar">✕</button>
+    </div>
+    <p>{{ product.description }}</p><strong>{{ format(product.price) }}</strong>
+  </div>
+  @for (group of product.groups; track group.id) {
+  <div class="option-group">
+    <div class="option-head"><strong>{{ group.name }}</strong><span>{{ group.min > 0 ? 'Obligatorio' : 'Opcional' }} ·
+        Máx. {{ group.max }}</span></div>
+    @for (option of group.options; track option.id) {
+    <div class="option-row"><label><input [type]="group.max === 1 ? 'radio' : 'checkbox'" [name]="'group-'+group.id"
+          [checked]="selected(group.id,option.id)" (change)="toggleOption(group.id,option.id)"> {{ option.name
+        }}</label><span>{{ option.price ? '+ ' + format(option.price) : 'Incluido' }}</span></div>
+    }
+  </div>
+  }
+  <div class="modal-qty"><strong>Cantidad</strong>
+    <div class="qty-stepper"><button type="button" aria-label="Menos"
+        (click)="selectedQty=Math.max(1,selectedQty-1)">−</button><span>{{ selectedQty }}</span><button type="button"
+        aria-label="Más" (click)="selectedQty=Math.min(20,selectedQty+1)">+</button></div>
+  </div>
+  @if (message()) { <p class="form-message">{{ message() }}</p> }
+  <div class="modal-foot"><button class="btn btn-primary full-width" type="button" [disabled]="!canAdd"
+      (click)="addSelected()">Agregar al carrito · {{ format(selectedUnit * selectedQty) }}</button></div>
+</section>
+}
+
+@if (modal === 'checkout') {
+<section class="modal checkout-modal" role="dialog" aria-modal="true" aria-label="Finalizar pedido de demostración">
+  <div class="modal-head">
+    <div><small>PASO FINAL</small>
+      <h2>Datos de entrega</h2>
+    </div><button class="icon-button" type="button" (click)="closeAll()" aria-label="Cerrar">✕</button>
+  </div>
+  <div class="modal-scroll">
+    <div class="callout-soft">🧪 Usa datos ficticios. Esta simulación se guarda solo en tu navegador. No realiza pagos
+      ni envía pedidos.</div>
+    <div class="form-grid"><label class="field">Nombre de ejemplo<input type="text" maxlength="60"
+          placeholder="Ej. Cliente de prueba" [(ngModel)]="checkout.customer" /></label><label class="field">Teléfono
+        ficticio<input type="text" inputmode="numeric" maxlength="9" placeholder="900000000"
+          [(ngModel)]="checkout.phone" /></label></div>
+    <div class="field"><span>Tipo de entrega</span>
+      <div class="delivery-options"><label><input type="radio" name="fulfillment" value="delivery"
+            [(ngModel)]="checkout.fulfillment"><span>🛵 Delivery</span></label><label><input type="radio"
+            name="fulfillment" value="pickup" [(ngModel)]="checkout.fulfillment"><span>🏬 Recojo en local</span></label>
+      </div>
+    </div>
+    @if (checkout.fulfillment === 'delivery') { <label class="field">Zona de reparto<select
+        [(ngModel)]="checkout.zone">@for (zone of zones; track zone.key) { <option [value]="zone.key">{{ zone.name }} —
+          {{ format(store.settings().fees[zone.key]) }}</option> }</select></label><label class="field">Dirección
+      ficticia<input maxlength="140" placeholder="Ej. Av. Principal 123 (ficticia)"
+        [(ngModel)]="checkout.address"></label> }
+    <label class="field">Forma de pago simulada<select [(ngModel)]="checkout.payment">
+        <option value="efectivo">Efectivo al recibir</option>
+        <option value="yape">Yape / Plin (sin verificación automática)</option>
+      </select></label>
+    <label class="field">Indicaciones opcionales<textarea rows="2" maxlength="220" [(ngModel)]="checkout.notes"
+        placeholder="Sin cebolla, etc."></textarea></label>
+    <div class="checkout-summary">
+      <div class="totals-row"><span>Subtotal</span><strong>{{ format(store.subtotal()) }}</strong></div>
+      <div class="totals-row"><span>Envío</span><strong>{{ format(store.deliveryFee(checkout.fulfillment,checkout.zone))
+          }}</strong></div>
+      <div class="totals-row grand"><span>Total</span><span>{{ format(checkoutCost) }}</span></div>
+    </div>
+    @if (message()) { <p class="form-message">{{ message() }}</p> }
+  </div>
+  <div class="modal-foot"><button class="btn btn-primary full-width" type="button"
+      [disabled]="!store.settings().acceptsOrders" (click)="submitOrder()">Crear pedido de prueba · {{
+      format(checkoutCost) }}</button></div>
+</section>
+}
+
+@if (modal === 'confirmation' && receipt; as order) {
+<section class="modal confirmation-modal" role="dialog" aria-modal="true" aria-label="Pedido de prueba creado">
+  <div class="confirmation-content">
+    <div style="font-size:52px">🎉</div>
+    <h2>¡Pedido de prueba creado!</h2>
+    <p>El pedido <strong>{{ order.code }}</strong> aparece ahora en el panel de este navegador. No fue enviado a ningún
+      negocio.</p>
+    <p><strong>Importe simulado: {{ format(order.total) }}</strong></p>
+    <div class="hero-actions" style="justify-content:center"><button type="button" class="btn btn-outline"
+        (click)="closeAll()">Seguir viendo el menú</button><a class="btn btn-primary" routerLink="/admin"
+        (click)="closeAll()">Ver pedido en panel ↗</a></div>
+  </div>
+</section>
+}
+@if (message() && modal === 'none') { <div class="toast-stack">
+  <div class="toast">{{ message() }}</div>
+</div> }
