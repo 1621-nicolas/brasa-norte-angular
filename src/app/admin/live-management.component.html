@@ -22,6 +22,7 @@
       <nav class="admin-nav" aria-label="Secciones administrativas">
         <button type="button" [class.active]="tab==='products'" (click)="changeTab('products')">▦ &nbsp; Productos</button>
         <button type="button" [class.active]="tab==='categories'" (click)="changeTab('categories')">▤ &nbsp; Categorías</button>
+        <button type="button" [class.active]="tab==='combos'" (click)="changeTab('combos')">✦ &nbsp; Combos y extras</button>
         <button type="button" [class.active]="tab==='settings'" (click)="changeTab('settings')">⚙ &nbsp; Configuración</button>
         <button type="button" [class.active]="tab==='orders'" (click)="changeTab('orders')">▤ &nbsp; Pedidos (próximamente)</button>
       </nav>
@@ -73,7 +74,10 @@
             }
             @for (p of products; track p.id) {
               <div class="product-admin-row">
-                <div class="product-admin-emoji">{{ p.emoji }}</div>
+                <div class="product-admin-emoji live-thumbnail">
+                  @if (p.image_url) { <img [src]="p.image_url" [alt]="'Fotografía de '+p.name" loading="lazy"> }
+                  @else { {{ p.emoji }} }
+                </div>
                 <div class="product-admin-label">
                   <strong>{{ p.name }}</strong>
                   <small>{{ categoryName(p.category_id) }} ·
@@ -97,6 +101,12 @@
               </div>
             }
           </div>
+        }
+        @if (tab === 'combos') {
+          <div class="micro-banner">Configura acompañamientos, tamaños y extras por producto. Esta versión
+            presenta opciones al cliente, pero no registra pagos ni pedidos reales.</div>
+          <app-product-extras-editor [restaurantId]="s.restaurant_id"
+            [products]="products" [editable]="canEdit"></app-product-extras-editor>
         }
         @if (tab === 'categories') {
           <div class="admin-card">
@@ -203,6 +213,28 @@
           <input [(ngModel)]="product.tag" maxlength="50" placeholder="Promoción" [disabled]="saving">
         </label>
       </div>
+      <div class="live-photo-field">
+        <div class="live-photo-preview">
+          @if (product.image_url) {
+            <img [src]="product.image_url" alt="Vista previa de la fotografía del plato">
+          } @else { <span>{{ product.emoji }}</span> }
+        </div>
+        <div class="live-photo-controls">
+          <strong>Fotografía del plato</strong>
+          @if (product.id) {
+            <label class="field">Subir JPG, PNG o WebP (máximo 2 MB)
+              <input type="file" accept="image/jpeg,image/png,image/webp"
+                (change)="onPhotoSelected($event)" [disabled]="saving">
+            </label>
+            @if (product.image_url) {
+              <button type="button" class="small-ghost" [disabled]="saving"
+                (click)="product.image_url=null">Quitar fotografía</button>
+            }
+          } @else {
+            <p>Guarda primero el nuevo producto. Después podrás subir su fotografía.</p>
+          }
+        </div>
+      </div>
       <div class="form-grid">
         <label class="field live-check">
           <input type="checkbox" [(ngModel)]="product.active" [disabled]="saving"> Publicado en catálogo
@@ -212,7 +244,7 @@
         </label>
       </div>
       <div class="callout-soft">Los precios se almacenan con precisión de céntimos en PostgreSQL.
-        Esta versión todavía no edita fotos ni opciones de combos.</div>
+        Los combos y extras se gestionan en su sección. El archivo de una foto reemplazada permanece en Storage hasta la limpieza de archivos.</div>
       @if (error) { <div role="alert" class="micro-banner">{{ error }}</div> }
       <div class="form-actions">
         <button class="btn btn-outline" type="button" [disabled]="saving"

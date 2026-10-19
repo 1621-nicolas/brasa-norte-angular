@@ -1,0 +1,101 @@
+<div class="admin-card">
+  <div class="admin-card-header">
+    <div><h3>Combos y complementos</h3>
+      <small>Define los grupos de elección para cada plato: tamaños, bebidas, salsas y extras.</small>
+    </div>
+  </div>
+  <div class="live-inline-editor">
+    <label class="field">Selecciona un producto
+      <select [ngModel]="selectedProductId" (ngModelChange)="changeProduct($event)">
+        @for (p of products; track p.id) {
+          <option [value]="p.id">{{ p.name }}</option>
+        }
+      </select>
+    </label>
+    @if (editable && selectedProductId) {
+      <button type="button" class="small-action" [disabled]="busy" (click)="newGroup()">+ Nuevo grupo</button>
+    }
+  </div>
+  @if (error) { <div class="micro-banner" role="alert">{{ error }}</div> }
+  @if (notice) { <div class="micro-banner live-success" role="status">{{ notice }}</div> }
+  @if (!selectedProductId) {
+    <div class="admin-empty">Crea un producto antes de configurar sus complementos.</div>
+  } @else if (loading) {
+    <div class="admin-empty">Cargando grupos y opciones desde Supabase…</div>
+  } @else {
+    @for (group of groupsForProduct(); track group.id) {
+      <div class="live-group-card">
+        <div class="live-group-head">
+          <div>
+            <strong>{{ group.name }}</strong>
+            <div class="live-group-meta">
+              {{ group.min_select ? 'Obligatorio' : 'Opcional' }} ·
+              mínimo {{ group.min_select }} / máximo {{ group.max_select }}
+              · {{ group.active ? 'Visible' : 'Desactivado' }}
+            </div>
+          </div>
+          @if (editable) {
+            <div class="live-group-actions">
+              <button class="small-ghost" type="button" (click)="editGroup(group)" [disabled]="busy">Editar grupo</button>
+              <button class="small-action" type="button" (click)="newOption(group)" [disabled]="busy">+ Opción</button>
+            </div>
+          }
+        </div>
+        @for (option of optionsForGroup(group.id); track option.id) {
+          <div class="live-option-row">
+            <span>{{ option.name }} <small>{{ option.active ? '' : '· Desactivada' }}</small></span>
+            <strong>+ {{ format(option.extra_price_cents) }}</strong>
+            @if (editable) {
+              <button type="button" class="small-ghost" [disabled]="busy" (click)="editOption(option)">Editar</button>
+            }
+          </div>
+        } @empty {
+          <p class="live-empty-options">Aún no hay opciones. Añade alternativas para que el cliente pueda elegir.</p>
+        }
+      </div>
+    } @empty {
+      <div class="admin-empty">Este producto todavía no tiene opciones. Añade un grupo para comenzar.</div>
+    }
+  }
+</div>
+
+@if (groupEditing; as draft) {
+  <div class="live-extras-dialog">
+    <h3>{{ draft.id ? 'Editar grupo' : 'Nuevo grupo de opciones' }}</h3>
+    <label class="field">Nombre del grupo
+      <input [(ngModel)]="draft.name" maxlength="100" placeholder="Ejemplo: Elige una bebida" [disabled]="busy">
+    </label>
+    <div class="form-grid">
+      <label class="field">Selecciones mínimas
+        <input type="number" min="0" max="20" step="1" [(ngModel)]="draft.min_select" [disabled]="busy">
+      </label>
+      <label class="field">Selecciones máximas
+        <input type="number" min="1" max="20" step="1" [(ngModel)]="draft.max_select" [disabled]="busy">
+      </label>
+    </div>
+    <label class="field live-check"><input type="checkbox" [(ngModel)]="draft.active" [disabled]="busy">
+      Grupo visible en catálogo</label>
+    <div class="form-actions">
+      <button type="button" class="btn btn-outline" [disabled]="busy" (click)="groupEditing=null">Cancelar</button>
+      <button type="button" class="btn btn-primary" [disabled]="busy || !draft.name.trim()" (click)="saveGroup()">Guardar grupo</button>
+    </div>
+  </div>
+}
+
+@if (optionEditing; as draft) {
+  <div class="live-extras-dialog">
+    <h3>{{ draft.id ? 'Editar complemento' : 'Nuevo complemento' }}</h3>
+    <label class="field">Nombre de la opción
+      <input [(ngModel)]="draft.name" maxlength="100" placeholder="Ejemplo: Queso extra" [disabled]="busy">
+    </label>
+    <label class="field">Precio adicional (S/)
+      <input type="number" min="0" max="100000" step="0.01" [(ngModel)]="draft.price" [disabled]="busy">
+    </label>
+    <label class="field live-check"><input type="checkbox" [(ngModel)]="draft.active" [disabled]="busy">
+      Opción disponible</label>
+    <div class="form-actions">
+      <button type="button" class="btn btn-outline" [disabled]="busy" (click)="optionEditing=null">Cancelar</button>
+      <button type="button" class="btn btn-primary" [disabled]="busy || !draft.name.trim()" (click)="saveOption()">Guardar complemento</button>
+    </div>
+  </div>
+}

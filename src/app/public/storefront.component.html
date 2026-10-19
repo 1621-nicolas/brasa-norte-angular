@@ -9,7 +9,7 @@
             class="btn btn-outline" type="button" (click)="store.cartOpen.set(true)">Ver mi pedido</button></div>
         <div class="hero-features"><span>✓ Delivery por zonas</span><span>✓ Recojo en local</span><span>✓ Sin
             registrarte</span></div>
-        <a class="mobile-admin-link" routerLink="/admin">Ver panel del restaurante →</a>
+        <a class="mobile-admin-link" routerLink="/demo/admin">Ver panel del restaurante →</a>
       </div>
       <div class="hero-art" role="img" aria-label="Ilustración de comida en un plato">
         <div class="hero-blob"></div>
@@ -214,7 +214,7 @@
       negocio.</p>
     <p><strong>Importe simulado: {{ format(order.total) }}</strong></p>
     <div class="hero-actions" style="justify-content:center"><button type="button" class="btn btn-outline"
-        (click)="closeAll()">Seguir viendo el menú</button><a class="btn btn-primary" routerLink="/admin"
+        (click)="closeAll()">Seguir viendo el menú</button><a class="btn btn-primary" routerLink="/demo/admin"
         (click)="closeAll()">Ver pedido en panel ↗</a></div>
   </div>
 </section>

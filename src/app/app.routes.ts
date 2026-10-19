@@ -9,7 +9,8 @@ import { restaurantAuthGuard } from './core/restaurant-auth.guard';
 export const appRoutes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'r/brasa-norte' },
   { path: 'r/brasa-norte', component: StorefrontComponent, title: 'Brasa Norte | Menú de demostración' },
-  { path: 'admin', component: AdminComponent, title: 'Brasa Norte | Panel DEMO' },
+  { path: 'admin', pathMatch: 'full', redirectTo: 'gestion' },
+  { path: 'demo/admin', component: AdminComponent, title: 'Brasa Norte | Panel DEMO' },
   { path: 'ingresar', component: LoginComponent, title: 'Brasa Norte | Acceso de restaurantes' },
   { path: 'gestion', component: LiveManagementComponent, canActivate: [restaurantAuthGuard], title: 'Brasa Norte | Gestión privada' },
   { path: 'catalogo/:slug', component: LiveCatalogComponent, title: 'Brasa Norte | Carta Supabase' },

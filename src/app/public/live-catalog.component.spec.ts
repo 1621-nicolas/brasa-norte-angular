@@ -12,6 +12,8 @@ const menu: PublicMenu = {
   categories: [
     { id: 'cat-1', restaurant_id: 'rest-demo', name: 'Pollos', position: 0, active: true }
   ],
+  groups: [],
+  options: [],
   products: [
     {
       id: 'p-1', restaurant_id: 'rest-demo', category_id: 'cat-1',
@@ -54,5 +56,30 @@ describe('LiveCatalogComponent · carga async con Angular zoneless', () => {
     const html = fixture.nativeElement.textContent as string;
     expect(html).toContain('La carta no está publicada');
     expect(html).not.toContain('Cargando carta desde Supabase');
+  });
+
+  it('suma complementos seleccionados sin registrar un pedido', async () => {
+    const decoratedMenu: PublicMenu = {
+      ...menu,
+      groups: [{
+        id: 'g1', restaurant_id: 'rest-demo', product_id: 'p-1',
+        name: 'Acompañamiento', min_select: 1, max_select: 1, active: true, position: 0
+      }],
+      options: [{
+        id: 'o1', restaurant_id: 'rest-demo', group_id: 'g1',
+        name: 'Papas grandes', extra_price_cents: 300, active: true, position: 0
+      }]
+    };
+    const fixture = await render(async () => decoratedMenu);
+    const page = fixture.componentInstance;
+    expect(page.hasMissingRequiredChoices('p-1')).toBe(true);
+    page.toggleChoice(decoratedMenu.groups[0], decoratedMenu.options[0]);
+    fixture.detectChanges();
+    expect(page.hasMissingRequiredChoices('p-1')).toBe(false);
+    expect(page.previewPrice(decoratedMenu.products[0])).toBe(2190);
+    expect(fixture.nativeElement.textContent).toContain('S/21.90');
+    // Una segunda selección del mismo complemento lo desmarca.
+    page.toggleChoice(decoratedMenu.groups[0], decoratedMenu.options[0]);
+    expect(page.previewPrice(decoratedMenu.products[0])).toBe(1890);
   });
 });

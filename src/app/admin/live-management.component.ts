@@ -1,5 +1,6 @@
 import { ChangeDetectorRef, Component, HostListener, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ProductExtrasEditorComponent } from './product-extras-editor.component';
 import { Router, RouterLink } from '@angular/router';
 import {
   DbCategory, DbProduct, RestaurantMember, RestaurantApiService, RestaurantSummary
@@ -13,6 +14,7 @@ interface ProductDraft {
   price: number;
   emoji: string;
   tag: string;
+  image_url: string | null;
   active: boolean;
   available: boolean;
 }
@@ -20,7 +22,7 @@ interface ProductDraft {
 @Component({
   standalone: true,
   selector: 'app-live-management',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, ProductExtrasEditorComponent],
   templateUrl: './live-management.component.html'
 })
 export class LiveManagementComponent implements OnInit {
@@ -33,7 +35,7 @@ export class LiveManagementComponent implements OnInit {
   selected: RestaurantMember | null = null;
   products: DbProduct[] = [];
   categories: DbCategory[] = [];
-  tab: 'products' | 'categories' | 'settings' | 'orders' = 'products';
+  tab: 'products' | 'categories' | 'settings' | 'orders' | 'combos' = 'products';
   editing: ProductDraft | null = null;
   newCategoryName = '';
   settings = { name: '', phone: '', opening_hours: '' };
@@ -51,6 +53,7 @@ export class LiveManagementComponent implements OnInit {
   get heading(): string {
     return ({
       products: 'Productos y carta',
+      combos: 'Combos y complementos',
       categories: 'Categorías',
       settings: 'Configuración del local',
       orders: 'Pedidos'
@@ -134,7 +137,7 @@ export class LiveManagementComponent implements OnInit {
     this.editing = {
       category_id: this.categories.find(c => c.active)?.id || this.categories[0].id,
       name: '', description: '', price: 20, emoji: '🍽️', tag: '',
-      active: true, available: true
+      image_url: null, active: true, available: true
     };
   }
 
@@ -143,8 +146,24 @@ export class LiveManagementComponent implements OnInit {
     this.editing = {
       id: p.id, category_id: p.category_id, name: p.name,
       description: p.description, price: p.price_cents / 100,
-      emoji: p.emoji, tag: p.tag, active: p.active, available: p.available
+      emoji: p.emoji, tag: p.tag, image_url: p.image_url, active: p.active, available: p.available
     };
+  }
+
+  async onPhotoSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file || !this.selected || !this.editing?.id || !this.canEdit || this.saving) return;
+    const restaurantId = this.selected.restaurant_id;
+    // Guardar el producto primero evita imágenes huérfanas de formularios nuevos.
+    await this.performUpdate(async () => {
+      const url = await this.api.uploadProductImage(restaurantId, file);
+      if (this.selected?.restaurant_id === restaurantId && this.editing) {
+        this.editing.image_url = url;
+        this.notice = 'Fotografía cargada. Pulsa Guardar producto para publicar el cambio.';
+      }
+    });
+    input.value = '';
   }
 
   async saveProduct(): Promise<void> {

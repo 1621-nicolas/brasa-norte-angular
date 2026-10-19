@@ -7,10 +7,12 @@ import { DemoStoreService } from "./core/demo-store.service";
   standalone: true,
   imports: [RouterOutlet, RouterLink],
   template: `
-    <div class="demo-banner">
-      <span class="banner-dot"></span> DEMOSTRACIÓN ANGULAR · Sin pedidos ni
-      pagos reales · Solo datos ficticios
-    </div>
+    @if (showDemoBanner()) {
+      <div class="demo-banner">
+        <span class="banner-dot"></span> DEMOSTRACIÓN ANGULAR · Sin pedidos ni
+        pagos reales · Solo datos ficticios
+      </div>
+    }
     @if (isDemoRoute()) {
       <header class="site-header">
         <div class="container header-inner">
@@ -27,7 +29,7 @@ import { DemoStoreService } from "./core/demo-store.service";
           <nav class="nav-links" aria-label="Navegación principal">
             <a href="/r/brasa-norte#menu">Menú</a
             ><a href="/r/brasa-norte#como-pedir">¿Cómo pedir?</a
-            ><a routerLink="/admin">Panel restaurante ↗</a>
+            ><a routerLink="/gestion">Administrar mi restaurante ↗</a>
           </nav>
           <button
             class="cart-trigger"
@@ -62,7 +64,7 @@ export class AppComponent {
   readonly store = inject(DemoStoreService);
   private readonly router = inject(Router);
   isDemoRoute(): boolean { return this.router.url === "/" || this.router.url.startsWith("/r/brasa-norte"); }
-  inAdmin(): boolean {
-    return this.router.url.startsWith("/admin");
+  showDemoBanner(): boolean {
+    return this.isDemoRoute() || this.router.url.startsWith("/demo/admin");
   }
 }

@@ -35,10 +35,44 @@ export interface DbProduct {
   active: boolean;
   position: number;
 }
+export interface DbOptionGroup {
+  id: string;
+  restaurant_id: string;
+  product_id: string;
+  name: string;
+  min_select: number;
+  max_select: number;
+  position: number;
+  active: boolean;
+}
+export interface DbProductOption {
+  id: string;
+  restaurant_id: string;
+  group_id: string;
+  name: string;
+  extra_price_cents: number;
+  active: boolean;
+  position: number;
+}
+export interface GroupDraft {
+  id?: string;
+  name: string;
+  min_select: number;
+  max_select: number;
+  active: boolean;
+}
+export interface OptionDraft {
+  id?: string;
+  name: string;
+  price: number;
+  active: boolean;
+}
 export interface PublicMenu {
   restaurant: RestaurantSummary;
   categories: DbCategory[];
   products: DbProduct[];
+  groups: DbOptionGroup[];
+  options: DbProductOption[];
 }
 
 /** Consultas contra Supabase. RLS valida todos los accesos en PostgreSQL. */
@@ -88,17 +122,26 @@ export class RestaurantApiService {
       .eq('slug', slug).eq('published', true).maybeSingle();
     if (restaurantError) throw new Error('No se pudo cargar el restaurante.');
     if (!restaurant) return null;
-    const [categories, products] = await Promise.all([
+    const [categories, products, groups, options] = await Promise.all([
       supabase.from('categories').select('id, restaurant_id, name, position, active')
         .eq('restaurant_id', restaurant.id).eq('active', true).order('position'),
       supabase.from('products').select('id, restaurant_id, category_id, name, description, price_cents, emoji, tag, image_url, available, active, position')
+        .eq('restaurant_id', restaurant.id).eq('active', true).order('position'),
+      supabase.from('product_option_groups')
+        .select('id, restaurant_id, product_id, name, min_select, max_select, position, active')
+        .eq('restaurant_id', restaurant.id).eq('active', true).order('position'),
+      supabase.from('product_options')
+        .select('id, restaurant_id, group_id, name, extra_price_cents, active, position')
         .eq('restaurant_id', restaurant.id).eq('active', true).order('position')
     ]);
-    if (categories.error || products.error) throw new Error('No se pudo cargar la carta.');
+    if (categories.error || products.error || groups.error || options.error)
+      throw new Error('No se pudo cargar la carta.');
     return {
       restaurant: restaurant as RestaurantSummary,
       categories: (categories.data ?? []) as DbCategory[],
-      products: (products.data ?? []) as DbProduct[]
+      products: (products.data ?? []) as DbProduct[],
+      groups: (groups.data ?? []) as DbOptionGroup[],
+      options: (options.data ?? []) as DbProductOption[]
     };
   }
 
@@ -146,7 +189,7 @@ export class RestaurantApiService {
 
   async saveProduct(restaurantId: string, draft: {
     id?: string; category_id: string; name: string; description: string;
-    price: number; emoji: string; tag: string; active: boolean; available: boolean;
+    price: number; emoji: string; tag: string; image_url: string | null; active: boolean; available: boolean;
   }): Promise<void> {
     const name = draft.name.trim();
     const description = draft.description.trim();
@@ -162,8 +205,12 @@ export class RestaurantApiService {
       throw new Error('Ingresa un precio válido desde S/0.50.');
     }
     if (!draft.category_id) throw new Error('Selecciona una categoría.');
+    const photoPrefix = 'https://anrkxjythmkzttcypjmy.supabase.co/storage/v1/object/public/restaurant-images/'
+      + restaurantId + '/';
+    if (draft.image_url !== null && !draft.image_url.startsWith(photoPrefix))
+      throw new Error('La imagen debe pertenecer al restaurante actual.');
     const values = { category_id: draft.category_id, name, description,
-      price_cents, emoji, tag, active: draft.active, available: draft.available };
+      price_cents, emoji, tag, image_url: draft.image_url, active: draft.active, available: draft.available };
     if (draft.id) {
       const { data, error } = await supabase.from('products')
         .update(values)
@@ -194,5 +241,79 @@ export class RestaurantApiService {
       .select('id, slug, name, phone, opening_hours, accepting_orders').single();
     if (error || !data) throw new Error('No se pudo actualizar el restaurante. Comprueba tu rol.');
     return data as RestaurantSummary;
+  }
+
+  async uploadProductImage(restaurantId: string, file: File): Promise<string> {
+    const extensions: Record<string, string> = {
+      'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp'
+    };
+    const extension = extensions[file.type];
+    if (!extension) throw new Error('La foto debe ser JPG, PNG o WebP.');
+    if (file.size < 1 || file.size > 2 * 1024 * 1024)
+      throw new Error('La foto no puede superar los 2 MB.');
+    const path = restaurantId + '/' + crypto.randomUUID() + '.' + extension;
+    const { error } = await supabase.storage.from('restaurant-images')
+      .upload(path, file, { upsert: false, contentType: file.type, cacheControl: '3600' });
+    if (error) throw new Error('No se pudo subir la foto. Comprueba permisos y tamaño.');
+    const { data } = supabase.storage.from('restaurant-images').getPublicUrl(path);
+    return data.publicUrl;
+  }
+
+  async optionGroups(restaurantId: string): Promise<DbOptionGroup[]> {
+    const { data, error } = await supabase.from('product_option_groups')
+      .select('id,restaurant_id,product_id,name,min_select,max_select,position,active')
+      .eq('restaurant_id', restaurantId).order('position');
+    if (error) throw new Error('No se pudieron obtener los grupos de extras.');
+    return (data ?? []) as DbOptionGroup[];
+  }
+
+  async productOptions(restaurantId: string): Promise<DbProductOption[]> {
+    const { data, error } = await supabase.from('product_options')
+      .select('id,restaurant_id,group_id,name,extra_price_cents,active,position')
+      .eq('restaurant_id', restaurantId).order('position');
+    if (error) throw new Error('No se pudieron obtener los complementos.');
+    return (data ?? []) as DbProductOption[];
+  }
+
+  async saveOptionGroup(restaurantId: string, productId: string, draft: GroupDraft): Promise<void> {
+    const name = draft.name.trim();
+    if (!name || name.length > 100 || !Number.isInteger(draft.min_select) ||
+        !Number.isInteger(draft.max_select) || draft.min_select < 0 ||
+        draft.max_select < 1 || draft.max_select > 20 || draft.min_select > draft.max_select)
+      throw new Error('Revisa el nombre y los límites de selección (0–20).');
+    const values = { name, min_select: draft.min_select, max_select: draft.max_select,
+      active: draft.active };
+    if (draft.id) {
+      const { data, error } = await supabase.from('product_option_groups')
+        .update(values).eq('id', draft.id).eq('restaurant_id', restaurantId)
+        .eq('product_id', productId).select('id').single();
+      if (error || !data) throw new Error('No se pudo modificar el grupo.');
+    } else {
+      const { data, error } = await supabase.from('product_option_groups')
+        .insert({ ...values, restaurant_id: restaurantId, product_id: productId })
+        .select('id').single();
+      if (error || !data) throw new Error('No se pudo crear el grupo.');
+    }
+  }
+
+  async saveProductOption(restaurantId: string, groupId: string, draft: OptionDraft): Promise<void> {
+    const name = draft.name.trim();
+    const extra_price_cents = Math.round(draft.price * 100);
+    if (!name || name.length > 100 || !Number.isFinite(draft.price) ||
+        !Number.isInteger(extra_price_cents) || extra_price_cents < 0 ||
+        extra_price_cents > 10_000_000)
+      throw new Error('Revisa el nombre y precio del complemento.');
+    const values = { name, extra_price_cents, active: draft.active };
+    if (draft.id) {
+      const { data, error } = await supabase.from('product_options')
+        .update(values).eq('id', draft.id).eq('restaurant_id', restaurantId)
+        .eq('group_id', groupId).select('id').single();
+      if (error || !data) throw new Error('No se pudo modificar el complemento.');
+    } else {
+      const { data, error } = await supabase.from('product_options')
+        .insert({ ...values, restaurant_id: restaurantId, group_id: groupId })
+        .select('id').single();
+      if (error || !data) throw new Error('No se pudo crear el complemento.');
+    }
   }
 }
