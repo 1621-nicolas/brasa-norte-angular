@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { DbProduct, RestaurantMember, RestaurantApiService } from '../core/restaurant-api.service';
 
@@ -59,6 +59,7 @@ import { DbProduct, RestaurantMember, RestaurantApiService } from '../core/resta
 export class LiveManagementComponent implements OnInit {
   private readonly api = inject(RestaurantApiService);
   private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
   memberships: RestaurantMember[] = [];
   selected: RestaurantMember | null = null;
   selectedId = '';
@@ -74,7 +75,7 @@ export class LiveManagementComponent implements OnInit {
       if (!this.memberships.length) { await this.router.navigateByUrl('/ingresar'); return; }
       await this.selectRestaurant(this.memberships[0]);
     } catch (err) { this.error = this.errorText(err); }
-    finally { this.loading = false; }
+    finally { this.loading = false; this.cdr.markForCheck(); }
   }
   async selectRestaurant(member: RestaurantMember): Promise<void> {
     this.selected = member;
@@ -82,6 +83,7 @@ export class LiveManagementComponent implements OnInit {
     this.error = ''; this.notice = '';
     try { this.products = await this.api.privateProducts(member.restaurant_id); }
     catch (err) { this.error = this.errorText(err); }
+    finally { this.cdr.markForCheck(); }
   }
   async savePrice(product: DbProduct, priceInput: string): Promise<void> {
     await this.performUpdate(async () => this.api.changePrice(product, Number(priceInput)));
@@ -97,11 +99,11 @@ export class LiveManagementComponent implements OnInit {
       this.products = await this.api.privateProducts(this.selected.restaurant_id);
       this.notice = 'Información guardada en Supabase.';
     } catch (err) { this.error = this.errorText(err); }
-    finally { this.saving = false; }
+    finally { this.saving = false; this.cdr.markForCheck(); }
   }
   async logout(): Promise<void> {
     try { await this.api.signOut(); await this.router.navigateByUrl('/ingresar'); }
-    catch (err) { this.error = this.errorText(err); }
+    catch (err) { this.error = this.errorText(err); this.cdr.markForCheck(); }
   }
   private errorText(err: unknown): string {
     return err instanceof Error ? err.message : 'No se pudo completar la operación.';

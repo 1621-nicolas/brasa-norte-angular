@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { RestaurantApiService } from '../core/restaurant-api.service';
@@ -35,6 +35,7 @@ import { RestaurantApiService } from '../core/restaurant-api.service';
 export class LoginComponent {
   readonly api = inject(RestaurantApiService);
   private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
   email = '';
   password = '';
   busy = false;
@@ -55,6 +56,6 @@ export class LoginComponent {
       await this.router.navigateByUrl('/gestion');
     } catch (err) {
       this.error = err instanceof Error ? err.message : 'No se pudo ingresar.';
-    } finally { this.busy = false; }
+    } finally { this.busy = false; this.cdr.markForCheck(); }
   }
 }
