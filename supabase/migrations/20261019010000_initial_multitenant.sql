@@ -166,26 +166,48 @@ create index order_history_order_idx on public.order_status_history(restaurant_i
 -- RLS obligatorio en absolutamente todas las tablas expuestas.
 alter table public.restaurants enable row level security;
 revoke all on table public.restaurants from anon, authenticated;
+grant all on table public.restaurants to service_role;
+
 alter table public.restaurant_members enable row level security;
 revoke all on table public.restaurant_members from anon, authenticated;
+grant all on table public.restaurant_members to service_role;
+
 alter table public.categories enable row level security;
 revoke all on table public.categories from anon, authenticated;
+grant all on table public.categories to service_role;
+
 alter table public.products enable row level security;
 revoke all on table public.products from anon, authenticated;
+grant all on table public.products to service_role;
+
 alter table public.product_option_groups enable row level security;
 revoke all on table public.product_option_groups from anon, authenticated;
+grant all on table public.product_option_groups to service_role;
+
 alter table public.product_options enable row level security;
 revoke all on table public.product_options from anon, authenticated;
+grant all on table public.product_options to service_role;
+
 alter table public.delivery_zones enable row level security;
 revoke all on table public.delivery_zones from anon, authenticated;
+grant all on table public.delivery_zones to service_role;
+
 alter table public.orders enable row level security;
 revoke all on table public.orders from anon, authenticated;
+grant all on table public.orders to service_role;
+
 alter table public.order_items enable row level security;
 revoke all on table public.order_items from anon, authenticated;
+grant all on table public.order_items to service_role;
+
 alter table public.order_item_options enable row level security;
 revoke all on table public.order_item_options from anon, authenticated;
+grant all on table public.order_item_options to service_role;
+
 alter table public.order_status_history enable row level security;
 revoke all on table public.order_status_history from anon, authenticated;
+grant all on table public.order_status_history to service_role;
+
 
 -- Ningún usuario puede darse rol a sí mismo. Altas de propietarios solo por administración confiable.
 grant select on public.restaurant_members to authenticated;
