@@ -12,6 +12,8 @@ const menu: PublicMenu = {
   categories: [
     { id: 'cat-1', restaurant_id: 'rest-demo', name: 'Pollos', position: 0, active: true }
   ],
+  groups: [],
+  options: [],
   products: [
     {
       id: 'p-1', restaurant_id: 'rest-demo', category_id: 'cat-1',
