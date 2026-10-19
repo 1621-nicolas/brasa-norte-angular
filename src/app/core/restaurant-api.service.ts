@@ -125,4 +125,74 @@ export class RestaurantApiService {
       .update({ price_cents: cents }).eq('restaurant_id', p.restaurant_id).eq('id', p.id);
     if (error) throw new Error('No tienes permiso para cambiar este precio.');
   }
+
+  /** Categorías del restaurante; RLS permite borradores solo a los miembros. */
+  async categoriesForRestaurant(restaurantId: string): Promise<DbCategory[]> {
+    const { data, error } = await supabase.from('categories')
+      .select('id, restaurant_id, name, position, active')
+      .eq('restaurant_id', restaurantId).order('position');
+    if (error) throw new Error('No se pudieron cargar las categorías.');
+    return (data ?? []) as DbCategory[];
+  }
+
+  async addCategory(restaurantId: string, name: string): Promise<void> {
+    const clean = name.trim();
+    if (!clean || clean.length > 80) throw new Error('La categoría debe tener de 1 a 80 caracteres.');
+    const { data, error } = await supabase.from('categories')
+      .insert({ restaurant_id: restaurantId, name: clean, active: true })
+      .select('id').single();
+    if (error || !data) throw new Error('No se pudo crear la categoría. Comprueba tus permisos.');
+  }
+
+  async saveProduct(restaurantId: string, draft: {
+    id?: string; category_id: string; name: string; description: string;
+    price: number; emoji: string; tag: string; active: boolean; available: boolean;
+  }): Promise<void> {
+    const name = draft.name.trim();
+    const description = draft.description.trim();
+    const emoji = draft.emoji.trim() || '🍽️';
+    const tag = draft.tag.trim();
+    const price_cents = Math.round(draft.price * 100);
+    if (!name || name.length > 120) throw new Error('Nombre requerido (máximo 120 caracteres).');
+    if (description.length > 1000 || emoji.length > 20 || tag.length > 50) {
+      throw new Error('La descripción, el ícono o la etiqueta superan el límite permitido.');
+    }
+    if (!Number.isFinite(draft.price) || !Number.isInteger(price_cents) ||
+        price_cents < 50 || price_cents > 10_000_000) {
+      throw new Error('Ingresa un precio válido desde S/0.50.');
+    }
+    if (!draft.category_id) throw new Error('Selecciona una categoría.');
+    const values = { category_id: draft.category_id, name, description,
+      price_cents, emoji, tag, active: draft.active, available: draft.available };
+    if (draft.id) {
+      const { data, error } = await supabase.from('products')
+        .update(values)
+        .eq('id', draft.id).eq('restaurant_id', restaurantId)
+        .select('id').single();
+      if (error || !data) throw new Error('No se pudo editar el producto. Revisa permisos y categoría.');
+    } else {
+      const { data, error } = await supabase.from('products')
+        .insert({ ...values, restaurant_id: restaurantId })
+        .select('id').single();
+      if (error || !data) throw new Error('No se pudo crear el producto. Revisa permisos y categoría.');
+    }
+  }
+
+  async saveRestaurantSettings(restaurantId: string, values: {
+    name: string; phone: string; opening_hours: string;
+  }): Promise<RestaurantSummary> {
+    const name = values.name.trim();
+    const phone = values.phone.trim();
+    const opening_hours = values.opening_hours.trim();
+    if (name.length < 2 || name.length > 120 || phone.length > 20 || opening_hours.length > 160) {
+      throw new Error('Comprueba el nombre, teléfono y horarios ingresados.');
+    }
+    // No permitimos activar accepting_orders desde este panel de desarrollo.
+    const { data, error } = await supabase.from('restaurants')
+      .update({ name, phone, opening_hours })
+      .eq('id', restaurantId)
+      .select('id, slug, name, phone, opening_hours, accepting_orders').single();
+    if (error || !data) throw new Error('No se pudo actualizar el restaurante. Comprueba tu rol.');
+    return data as RestaurantSummary;
+  }
 }
