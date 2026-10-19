@@ -1,0 +1,29 @@
+name: Actualizar package-lock para Supabase
+on:
+  push:
+    branches: [feat/v0.4-auth-and-catalog]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Generar lockfile consistente
+        run: npm install --package-lock-only --legacy-peer-deps --ignore-scripts
+      - name: Commit solo si cambió
+        run: |
+          git add package-lock.json
+          if ! git diff --cached --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "chore: lock Supabase dependency versions"
+            git push
+          fi
