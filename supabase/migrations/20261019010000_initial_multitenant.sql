@@ -194,12 +194,12 @@ create policy "members read own membership" on public.restaurant_members
 
 -- Un miembro autenticado ve su restaurante en borrador; el visitante solo ve publicados.
 grant select on public.restaurants to anon, authenticated;
-create policy "public or member read restaurants" on public.restaurants
-  for select to anon, authenticated using (
-    published or exists (
-      select 1 from public.restaurant_members m
-      where m.restaurant_id = id and m.user_id = (select auth.uid())
-    )
+create policy "public read restaurants" on public.restaurants
+  for select to anon, authenticated using (published);
+create policy "member read draft restaurants" on public.restaurants
+  for select to authenticated using (
+    exists (select 1 from public.restaurant_members m
+      where m.restaurant_id = id and m.user_id = (select auth.uid()))
   );
 grant update (name, phone, opening_hours, accepting_orders) on public.restaurants to authenticated;
 create policy "owners update restaurant settings" on public.restaurants
@@ -210,8 +210,10 @@ create policy "owners update restaurant settings" on public.restaurants
 -- Funciones y vistas comerciales deben respetar pertenencia y publicación; NO exponer pedidos.
 
 grant select on public.categories to anon, authenticated;
-create policy "public or member read categories" on public.categories
-  for select to anon, authenticated using (((active) and exists (select 1 from public.restaurants r where r.id = categories.restaurant_id and r.published)) or (exists (select 1 from public.restaurant_members m where m.restaurant_id = categories.restaurant_id and m.user_id = (select auth.uid()))));
+create policy "public read categories" on public.categories
+  for select to anon, authenticated using ((active) and exists (select 1 from public.restaurants r where r.id = categories.restaurant_id and r.published));
+create policy "member read categories" on public.categories
+  for select to authenticated using (exists (select 1 from public.restaurant_members m where m.restaurant_id = categories.restaurant_id and m.user_id = (select auth.uid())));
 grant insert on public.categories to authenticated;
 create policy "managers insert categories" on public.categories
   for insert to authenticated with check (exists (select 1 from public.restaurant_members m where m.restaurant_id = categories.restaurant_id and m.user_id = (select auth.uid()) and m.role in ('owner','manager')));
@@ -220,8 +222,10 @@ create policy "managers update categories" on public.categories
   for update to authenticated using (exists (select 1 from public.restaurant_members m where m.restaurant_id = categories.restaurant_id and m.user_id = (select auth.uid()) and m.role in ('owner','manager'))) with check (exists (select 1 from public.restaurant_members m where m.restaurant_id = categories.restaurant_id and m.user_id = (select auth.uid()) and m.role in ('owner','manager')));
 
 grant select on public.products to anon, authenticated;
-create policy "public or member read products" on public.products
-  for select to anon, authenticated using (((active) and exists (select 1 from public.restaurants r where r.id = products.restaurant_id and r.published)) or (exists (select 1 from public.restaurant_members m where m.restaurant_id = products.restaurant_id and m.user_id = (select auth.uid()))));
+create policy "public read products" on public.products
+  for select to anon, authenticated using ((active) and exists (select 1 from public.restaurants r where r.id = products.restaurant_id and r.published));
+create policy "member read products" on public.products
+  for select to authenticated using (exists (select 1 from public.restaurant_members m where m.restaurant_id = products.restaurant_id and m.user_id = (select auth.uid())));
 grant insert on public.products to authenticated;
 create policy "managers insert products" on public.products
   for insert to authenticated with check (exists (select 1 from public.restaurant_members m where m.restaurant_id = products.restaurant_id and m.user_id = (select auth.uid()) and m.role in ('owner','manager')));
@@ -230,8 +234,10 @@ create policy "managers update products" on public.products
   for update to authenticated using (exists (select 1 from public.restaurant_members m where m.restaurant_id = products.restaurant_id and m.user_id = (select auth.uid()) and m.role in ('owner','manager'))) with check (exists (select 1 from public.restaurant_members m where m.restaurant_id = products.restaurant_id and m.user_id = (select auth.uid()) and m.role in ('owner','manager')));
 
 grant select on public.product_option_groups to anon, authenticated;
-create policy "public or member read product_option_groups" on public.product_option_groups
-  for select to anon, authenticated using (((exists (select 1 from public.products p where p.id = product_id and p.restaurant_id = product_option_groups.restaurant_id and p.active)) and exists (select 1 from public.restaurants r where r.id = product_option_groups.restaurant_id and r.published)) or (exists (select 1 from public.restaurant_members m where m.restaurant_id = product_option_groups.restaurant_id and m.user_id = (select auth.uid()))));
+create policy "public read product_option_groups" on public.product_option_groups
+  for select to anon, authenticated using ((exists (select 1 from public.products p where p.id = product_id and p.restaurant_id = product_option_groups.restaurant_id and p.active)) and exists (select 1 from public.restaurants r where r.id = product_option_groups.restaurant_id and r.published));
+create policy "member read product_option_groups" on public.product_option_groups
+  for select to authenticated using (exists (select 1 from public.restaurant_members m where m.restaurant_id = product_option_groups.restaurant_id and m.user_id = (select auth.uid())));
 grant insert on public.product_option_groups to authenticated;
 create policy "managers insert product_option_groups" on public.product_option_groups
   for insert to authenticated with check (exists (select 1 from public.restaurant_members m where m.restaurant_id = product_option_groups.restaurant_id and m.user_id = (select auth.uid()) and m.role in ('owner','manager')));
@@ -240,8 +246,10 @@ create policy "managers update product_option_groups" on public.product_option_g
   for update to authenticated using (exists (select 1 from public.restaurant_members m where m.restaurant_id = product_option_groups.restaurant_id and m.user_id = (select auth.uid()) and m.role in ('owner','manager'))) with check (exists (select 1 from public.restaurant_members m where m.restaurant_id = product_option_groups.restaurant_id and m.user_id = (select auth.uid()) and m.role in ('owner','manager')));
 
 grant select on public.product_options to anon, authenticated;
-create policy "public or member read product_options" on public.product_options
-  for select to anon, authenticated using (((active and exists (select 1 from public.product_option_groups g join public.products p on p.id = g.product_id and p.restaurant_id = g.restaurant_id where g.id = group_id and g.restaurant_id = product_options.restaurant_id and p.active)) and exists (select 1 from public.restaurants r where r.id = product_options.restaurant_id and r.published)) or (exists (select 1 from public.restaurant_members m where m.restaurant_id = product_options.restaurant_id and m.user_id = (select auth.uid()))));
+create policy "public read product_options" on public.product_options
+  for select to anon, authenticated using ((active and exists (select 1 from public.product_option_groups g join public.products p on p.id = g.product_id and p.restaurant_id = g.restaurant_id where g.id = group_id and g.restaurant_id = product_options.restaurant_id and p.active)) and exists (select 1 from public.restaurants r where r.id = product_options.restaurant_id and r.published));
+create policy "member read product_options" on public.product_options
+  for select to authenticated using (exists (select 1 from public.restaurant_members m where m.restaurant_id = product_options.restaurant_id and m.user_id = (select auth.uid())));
 grant insert on public.product_options to authenticated;
 create policy "managers insert product_options" on public.product_options
   for insert to authenticated with check (exists (select 1 from public.restaurant_members m where m.restaurant_id = product_options.restaurant_id and m.user_id = (select auth.uid()) and m.role in ('owner','manager')));
@@ -250,8 +258,10 @@ create policy "managers update product_options" on public.product_options
   for update to authenticated using (exists (select 1 from public.restaurant_members m where m.restaurant_id = product_options.restaurant_id and m.user_id = (select auth.uid()) and m.role in ('owner','manager'))) with check (exists (select 1 from public.restaurant_members m where m.restaurant_id = product_options.restaurant_id and m.user_id = (select auth.uid()) and m.role in ('owner','manager')));
 
 grant select on public.delivery_zones to anon, authenticated;
-create policy "public or member read delivery_zones" on public.delivery_zones
-  for select to anon, authenticated using (((active) and exists (select 1 from public.restaurants r where r.id = delivery_zones.restaurant_id and r.published)) or (exists (select 1 from public.restaurant_members m where m.restaurant_id = delivery_zones.restaurant_id and m.user_id = (select auth.uid()))));
+create policy "public read delivery_zones" on public.delivery_zones
+  for select to anon, authenticated using ((active) and exists (select 1 from public.restaurants r where r.id = delivery_zones.restaurant_id and r.published));
+create policy "member read delivery_zones" on public.delivery_zones
+  for select to authenticated using (exists (select 1 from public.restaurant_members m where m.restaurant_id = delivery_zones.restaurant_id and m.user_id = (select auth.uid())));
 grant insert on public.delivery_zones to authenticated;
 create policy "managers insert delivery_zones" on public.delivery_zones
   for insert to authenticated with check (exists (select 1 from public.restaurant_members m where m.restaurant_id = delivery_zones.restaurant_id and m.user_id = (select auth.uid()) and m.role in ('owner','manager')));
