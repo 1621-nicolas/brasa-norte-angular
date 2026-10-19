@@ -117,6 +117,12 @@ export class LiveManagementComponent implements OnInit {
     }
   }
 
+  selectRestaurantById(id: string): void {
+    if (this.saving) return;
+    const member = this.memberships.find(m => m.restaurant_id === id);
+    if (member) void this.selectRestaurant(member);
+  }
+
   changeTab(next: typeof this.tab): void {
     this.tab = next;
     this.notice = '';
