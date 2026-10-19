@@ -38,7 +38,13 @@ async function setup(role: RestaurantMember['role'] = 'owner') {
   }).compileComponents();
   const fixture = TestBed.createComponent(LiveManagementComponent);
   fixture.detectChanges();
-  await fixture.whenStable();
+  // ngOnInit es asíncrono: whenStable() puede completarse antes de las promesas
+  // externas del servicio simulado. Esperamos explícitamente la carga real.
+  await vi.waitFor(() => {
+    expect(fixture.componentInstance.loading).toBe(false);
+    expect(fixture.componentInstance.products.length).toBe(1);
+  }, { timeout: 2500 });
+  fixture.detectChanges();
   return { api, fixture, component: fixture.componentInstance };
 }
 
