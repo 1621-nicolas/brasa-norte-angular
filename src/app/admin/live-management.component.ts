@@ -1,111 +1,242 @@
-import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
-import { Router } from '@angular/router';
-import { DbProduct, RestaurantMember, RestaurantApiService } from '../core/restaurant-api.service';
+import { ChangeDetectorRef, Component, HostListener, OnInit, inject } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
+import {
+  DbCategory, DbProduct, RestaurantMember, RestaurantApiService, RestaurantSummary
+} from '../core/restaurant-api.service';
+
+interface ProductDraft {
+  id?: string;
+  category_id: string;
+  name: string;
+  description: string;
+  price: number;
+  emoji: string;
+  tag: string;
+  active: boolean;
+  available: boolean;
+}
 
 @Component({
   standalone: true,
   selector: 'app-live-management',
-  template: `
-  <main class="cloud-page">
-    <section class="cloud-panel">
-      <div class="cloud-heading">
-        <div><div class="section-kicker">BRASA NORTE · SUPABASE</div>
-          <h1>Gestión de restaurantes</h1>
-          <p>Productos sincronizados con la base de datos central.</p></div>
-        <button class="btn btn-outline" type="button" (click)="logout()">Cerrar sesión</button>
-      </div>
-      <div class="micro-banner">Acceso privado V0.4. Solo productos y catálogo, sin pedidos reales.</div>
-      @if (error) { <div class="micro-banner" role="alert">{{ error }}</div> }
-      @if (notice) { <div class="micro-banner" role="status">{{ notice }}</div> }
-      @if (loading) { <p>Cargando restaurantes…</p> }
-      @else {
-        <div class="cloud-restaurants" role="group" aria-label="Seleccionar restaurante">
-          @for (m of memberships; track m.restaurant_id) {
-            <button type="button" class="small-action" [class.active]="m.restaurant_id===selectedId"
-              (click)="selectRestaurant(m)">{{ m.restaurant.name }} · {{ m.role }}</button>
-          }
-        </div>
-        @if (selected; as s) {
-          <div class="cloud-heading">
-            <div><h2>{{ s.restaurant.name }}</h2><p>Productos registrados: {{ products.length }}</p></div>
-            <span class="demo-pill">{{ s.role === 'staff' ? 'Solo lectura' : 'Edición permitida' }}</span>
-          </div>
-          <div class="cloud-products">
-            @for (p of products; track p.id) {
-              <article class="cloud-product cloud-product-admin">
-                <div class="cloud-product-icon">{{ p.emoji }}</div>
-                <div class="cloud-product-details">
-                  <h3>{{ p.name }}</h3>
-                  <p>{{ p.description }}</p>
-                  <div class="cloud-price-edit">
-                    <label class="field">Precio (S/)
-                      <input type="number" min="0.5" max="100000" step="0.01" #price [value]="p.price_cents / 100"
-                        [disabled]="s.role==='staff' || saving">
-                    </label>
-                    <button class="small-action" type="button" [disabled]="s.role==='staff' || saving"
-                      (click)="savePrice(p, price.value)">Guardar precio</button>
-                    <button class="small-action" type="button" [disabled]="s.role==='staff' || saving"
-                      (click)="toggleProduct(p)">{{ p.available ? 'Marcar agotado' : 'Activar producto' }}</button>
-                  </div>
-                </div>
-              </article>
-            }
-          </div>
-        }
-      }
-    </section>
-  </main>`
+  imports: [FormsModule, RouterLink],
+  templateUrl: './live-management.component.html'
 })
 export class LiveManagementComponent implements OnInit {
   private readonly api = inject(RestaurantApiService);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
+  private requestId = 0;
+
   memberships: RestaurantMember[] = [];
   selected: RestaurantMember | null = null;
-  selectedId = '';
   products: DbProduct[] = [];
+  categories: DbCategory[] = [];
+  tab: 'products' | 'categories' | 'settings' | 'orders' = 'products';
+  editing: ProductDraft | null = null;
+  newCategoryName = '';
+  settings = { name: '', phone: '', opening_hours: '' };
   error = '';
   notice = '';
   loading = true;
   saving = false;
 
+  readonly emojis = ['🍗', '🍔', '🍟', '🥤', '🥗', '🍕', '🍽️', '🧃', '🌭', '🍰'];
+
+  get canEdit(): boolean {
+    return this.selected?.role === 'owner' || this.selected?.role === 'manager';
+  }
+
+  get heading(): string {
+    return ({
+      products: 'Productos y carta',
+      categories: 'Categorías',
+      settings: 'Configuración del local',
+      orders: 'Pedidos'
+    })[this.tab];
+  }
+
+  get availableCount(): number {
+    return this.products.filter(p => p.active && p.available).length;
+  }
+
+  get inactiveCount(): number {
+    return this.products.filter(p => !p.active || !p.available).length;
+  }
+
+  @HostListener('document:keydown.escape')
+  escape(): void { this.editing = null; }
+
   async ngOnInit(): Promise<void> {
     try {
       this.memberships = await this.api.memberships();
-      if (!this.memberships.length) { await this.router.navigateByUrl('/ingresar'); return; }
+      if (!this.memberships.length) {
+        await this.router.navigateByUrl('/ingresar');
+        return;
+      }
       await this.selectRestaurant(this.memberships[0]);
-    } catch (err) { this.error = this.errorText(err); }
-    finally { this.loading = false; this.cdr.markForCheck(); }
+    } catch (err) {
+      this.error = this.errorMessage(err);
+    } finally {
+      this.loading = false;
+      this.cdr.markForCheck();
+    }
   }
+
   async selectRestaurant(member: RestaurantMember): Promise<void> {
+    const currentRequest = ++this.requestId;
     this.selected = member;
-    this.selectedId = member.restaurant_id;
-    this.error = ''; this.notice = '';
-    try { this.products = await this.api.privateProducts(member.restaurant_id); }
-    catch (err) { this.error = this.errorText(err); }
-    finally { this.cdr.markForCheck(); }
-  }
-  async savePrice(product: DbProduct, priceInput: string): Promise<void> {
-    await this.performUpdate(async () => this.api.changePrice(product, Number(priceInput)));
-  }
-  async toggleProduct(product: DbProduct): Promise<void> {
-    await this.performUpdate(async () => this.api.changeAvailability(product));
-  }
-  private async performUpdate(operation: () => Promise<void>): Promise<void> {
-    if (this.saving || !this.selected) return;
-    this.saving = true; this.error = ''; this.notice = '';
+    this.products = [];
+    this.categories = [];
+    this.settings = {
+      name: member.restaurant.name,
+      phone: member.restaurant.phone,
+      opening_hours: member.restaurant.opening_hours
+    };
+    this.error = '';
+    this.notice = '';
+    this.loading = true;
+    this.editing = null;
+    this.cdr.markForCheck();
     try {
-      await operation();
-      this.products = await this.api.privateProducts(this.selected.restaurant_id);
-      this.notice = 'Información guardada en Supabase.';
-    } catch (err) { this.error = this.errorText(err); }
-    finally { this.saving = false; this.cdr.markForCheck(); }
+      const [products, categories] = await Promise.all([
+        this.api.privateProducts(member.restaurant_id),
+        this.api.categoriesForRestaurant(member.restaurant_id)
+      ]);
+      if (currentRequest !== this.requestId) return;
+      this.products = products;
+      this.categories = categories;
+    } catch (err) {
+      if (currentRequest === this.requestId) this.error = this.errorMessage(err);
+    } finally {
+      if (currentRequest === this.requestId) {
+        this.loading = false;
+        this.cdr.markForCheck();
+      }
+    }
   }
+
+  changeTab(next: typeof this.tab): void {
+    this.tab = next;
+    this.notice = '';
+    this.error = '';
+  }
+
+  newProduct(): void {
+    if (!this.canEdit || this.categories.length === 0) return;
+    this.editing = {
+      category_id: this.categories.find(c => c.active)?.id || this.categories[0].id,
+      name: '', description: '', price: 20, emoji: '🍽️', tag: '',
+      active: true, available: true
+    };
+  }
+
+  editProduct(p: DbProduct): void {
+    if (!this.canEdit) return;
+    this.editing = {
+      id: p.id, category_id: p.category_id, name: p.name,
+      description: p.description, price: p.price_cents / 100,
+      emoji: p.emoji, tag: p.tag, active: p.active, available: p.available
+    };
+  }
+
+  async saveProduct(): Promise<void> {
+    if (!this.canEdit || !this.selected || !this.editing || this.saving) return;
+    const draft = { ...this.editing };
+    const restaurantId = this.selected.restaurant_id;
+    await this.performUpdate(async () => {
+      await this.api.saveProduct(restaurantId, draft);
+      await this.reloadCatalog(restaurantId);
+      this.editing = null;
+      this.notice = draft.id ? 'Producto actualizado en PostgreSQL.' : 'Producto creado en PostgreSQL.';
+    });
+  }
+
+  async toggleProduct(p: DbProduct): Promise<void> {
+    if (!this.canEdit || !this.selected || this.saving) return;
+    const restaurantId = this.selected.restaurant_id;
+    await this.performUpdate(async () => {
+      await this.api.changeAvailability(p);
+      await this.reloadCatalog(restaurantId);
+      this.notice = 'Disponibilidad actualizada en Supabase.';
+    });
+  }
+
+  async addCategory(): Promise<void> {
+    if (!this.canEdit || !this.selected || this.saving) return;
+    const restaurantId = this.selected.restaurant_id;
+    const name = this.newCategoryName;
+    await this.performUpdate(async () => {
+      await this.api.addCategory(restaurantId, name);
+      await this.reloadCatalog(restaurantId);
+      this.newCategoryName = '';
+      this.notice = 'Categoría creada correctamente.';
+    });
+  }
+
+  async saveSettings(): Promise<void> {
+    if (!this.canEdit || !this.selected || this.saving) return;
+    const restaurantId = this.selected.restaurant_id;
+    const values = { ...this.settings };
+    await this.performUpdate(async () => {
+      const restaurant: RestaurantSummary = await this.api.saveRestaurantSettings(restaurantId, values);
+      if (this.selected?.restaurant_id === restaurantId) {
+        this.selected.restaurant = restaurant;
+        this.settings = {
+          name: restaurant.name, phone: restaurant.phone, opening_hours: restaurant.opening_hours
+        };
+      }
+      this.notice = 'Datos comerciales actualizados en Supabase.';
+    });
+  }
+
   async logout(): Promise<void> {
-    try { await this.api.signOut(); await this.router.navigateByUrl('/ingresar'); }
-    catch (err) { this.error = this.errorText(err); this.cdr.markForCheck(); }
+    if (this.saving) return;
+    try {
+      await this.api.signOut();
+      await this.router.navigateByUrl('/ingresar');
+    } catch (err) {
+      this.error = this.errorMessage(err);
+      this.cdr.markForCheck();
+    }
   }
-  private errorText(err: unknown): string {
-    return err instanceof Error ? err.message : 'No se pudo completar la operación.';
+
+  categoryName(categoryId: string): string {
+    return this.categories.find(c => c.id === categoryId)?.name ?? 'Sin categoría';
+  }
+
+  price(cents: number): string {
+    return 'S/' + (cents / 100).toFixed(2);
+  }
+
+  private async reloadCatalog(id: string): Promise<void> {
+    const [products, categories] = await Promise.all([
+      this.api.privateProducts(id), this.api.categoriesForRestaurant(id)
+    ]);
+    if (this.selected?.restaurant_id === id) {
+      this.products = products;
+      this.categories = categories;
+    }
+  }
+
+  private async performUpdate(fn: () => Promise<void>): Promise<void> {
+    if (this.saving) return;
+    this.error = '';
+    this.notice = '';
+    this.saving = true;
+    this.cdr.markForCheck();
+    try {
+      await fn();
+    } catch (err) {
+      this.error = this.errorMessage(err);
+    } finally {
+      this.saving = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  private errorMessage(err: unknown): string {
+    return err instanceof Error ? err.message : 'La operación no pudo completarse.';
   }
 }
