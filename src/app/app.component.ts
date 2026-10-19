@@ -11,7 +11,7 @@ import { DemoStoreService } from "./core/demo-store.service";
       <span class="banner-dot"></span> DEMOSTRACIÓN ANGULAR · Sin pedidos ni
       pagos reales · Solo datos ficticios
     </div>
-    @if (!inAdmin()) {
+    @if (isDemoRoute()) {
       <header class="site-header">
         <div class="container header-inner">
           <a
@@ -42,7 +42,7 @@ import { DemoStoreService } from "./core/demo-store.service";
       </header>
     }
     <router-outlet />
-    @if (!inAdmin()) {
+    @if (isDemoRoute()) {
       <footer class="site-footer">
         <div class="container footer-inner">
           <div>
@@ -61,6 +61,7 @@ import { DemoStoreService } from "./core/demo-store.service";
 export class AppComponent {
   readonly store = inject(DemoStoreService);
   private readonly router = inject(Router);
+  isDemoRoute(): boolean { return this.router.url === "/" || this.router.url.startsWith("/r/brasa-norte"); }
   inAdmin(): boolean {
     return this.router.url.startsWith("/admin");
   }
