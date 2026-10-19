@@ -1,0 +1,225 @@
+<section class="admin-app" aria-label="Administración privada de restaurantes">
+  <div class="container admin-layout">
+    <aside class="admin-sidebar">
+      <div class="admin-title">
+        <span class="brand-mark">✦</span>
+        <div>
+          <strong>{{ selected?.restaurant?.name || 'Brasa Norte' }}</strong>
+          <small>Panel del restaurante</small>
+        </div>
+      </div>
+      <div class="admin-demo">🔒 SUPABASE · ACCESO AUTORIZADO</div>
+      @if (memberships.length > 1) {
+        <label class="field">Restaurante
+          <select #restaurantSwitch [value]="selected?.restaurant_id"
+            (change)="selectRestaurantById(restaurantSwitch.value)">
+            @for (m of memberships; track m.restaurant_id) {
+              <option [value]="m.restaurant_id">{{ m.restaurant.name }}</option>
+            }
+          </select>
+        </label>
+      }
+      <nav class="admin-nav" aria-label="Secciones administrativas">
+        <button type="button" [class.active]="tab==='products'" (click)="changeTab('products')">▦ &nbsp; Productos</button>
+        <button type="button" [class.active]="tab==='categories'" (click)="changeTab('categories')">▤ &nbsp; Categorías</button>
+        <button type="button" [class.active]="tab==='settings'" (click)="changeTab('settings')">⚙ &nbsp; Configuración</button>
+        <button type="button" [class.active]="tab==='orders'" (click)="changeTab('orders')">▤ &nbsp; Pedidos (próximamente)</button>
+      </nav>
+      @if (selected; as s) {
+        <a class="btn btn-outline back-store" [routerLink]="['/catalogo', s.restaurant.slug]">← Ver carta publicada</a>
+      }
+      <button type="button" class="small-ghost live-signout" (click)="logout()">Cerrar sesión</button>
+    </aside>
+
+    <div class="admin-main">
+      <div class="admin-top">
+        <div>
+          <div class="section-kicker">GESTIÓN DEL NEGOCIO · POSTGRESQL</div>
+          <h2>{{ heading }}</h2>
+          <p>Los cambios autorizados se guardan en la base de datos central.</p>
+        </div>
+        <div class="admin-top-actions">
+          <span class="demo-pill">● PANEL PRIVADO</span>
+        </div>
+      </div>
+
+      @if (error) { <div class="micro-banner" role="alert">{{ error }}</div> }
+      @if (notice) { <div class="micro-banner live-success" role="status">{{ notice }}</div> }
+      @if (loading) {
+        <div class="admin-card"><div class="admin-empty">Cargando información del restaurante…</div></div>
+      } @else if (selected; as s) {
+        <div class="micro-banner">
+          {{ s.restaurant.name }} · Rol: {{ s.role }}.
+          @if (!canEdit) { Tu cuenta solo puede consultar esta información. }
+          Los pedidos reales continúan deshabilitados.
+        </div>
+        @if (tab === 'products') {
+          <div class="stats-grid">
+            <div class="stat-card"><span>Productos registrados</span><strong>{{ products.length }}</strong></div>
+            <div class="stat-card"><span>Disponibles</span><strong>{{ availableCount }}</strong></div>
+            <div class="stat-card"><span>Agotados o desactivados</span><strong>{{ inactiveCount }}</strong></div>
+            <div class="stat-card"><span>Categorías</span><strong>{{ categories.length }}</strong></div>
+          </div>
+          <div class="admin-card">
+            <div class="admin-card-header">
+              <div><h3>Carta actual</h3><small>Productos sincronizados con Supabase</small></div>
+              @if (canEdit) {
+                <button class="small-action" type="button" [disabled]="saving || categories.length===0"
+                  (click)="newProduct()">+ Añadir producto</button>
+              }
+            </div>
+            @if (categories.length===0) {
+              <div class="admin-empty">Primero crea una categoría en la sección Categorías.</div>
+            }
+            @for (p of products; track p.id) {
+              <div class="product-admin-row">
+                <div class="product-admin-emoji">{{ p.emoji }}</div>
+                <div class="product-admin-label">
+                  <strong>{{ p.name }}</strong>
+                  <small>{{ categoryName(p.category_id) }} ·
+                    {{ p.active ? (p.available ? 'Disponible' : 'Agotado') : 'Oculto' }}</small>
+                </div>
+                <span class="product-admin-price">{{ price(p.price_cents) }}</span>
+                @if (canEdit) {
+                  <button type="button" class="small-ghost" [disabled]="saving" (click)="editProduct(p)">Editar</button>
+                  <button type="button" class="toggle" role="switch"
+                    [disabled]="saving"
+                    [class.on]="p.available"
+                    [attr.aria-checked]="p.available"
+                    [attr.aria-label]="'Disponibilidad de '+p.name"
+                    (click)="toggleProduct(p)"></button>
+                }
+              </div>
+            } @empty {
+              <div class="admin-empty">
+                <strong>No hay productos todavía</strong>
+                <p>Crea tu primer producto para comenzar a armar la carta.</p>
+              </div>
+            }
+          </div>
+        }
+        @if (tab === 'categories') {
+          <div class="admin-card">
+            <div class="admin-card-header">
+              <div><h3>Categorías de la carta</h3><small>Agrupa pollos, combos, bebidas y complementos.</small></div>
+            </div>
+            @for (c of categories; track c.id) {
+              <div class="product-admin-row">
+                <div class="product-admin-emoji">▤</div>
+                <div class="product-admin-label">
+                  <strong>{{ c.name }}</strong>
+                  <small>{{ c.active ? 'Visible' : 'No visible' }}</small>
+                </div>
+              </div>
+            } @empty {
+              <div class="admin-empty">Este local aún no tiene categorías.</div>
+            }
+            @if (canEdit) {
+              <div class="live-inline-editor">
+                <label class="field">Nueva categoría
+                  <input [(ngModel)]="newCategoryName" maxlength="80" placeholder="Ejemplo: Hamburguesas">
+                </label>
+                <button type="button" class="btn btn-primary" [disabled]="saving || !newCategoryName.trim()"
+                  (click)="addCategory()">Crear categoría</button>
+              </div>
+            }
+          </div>
+        }
+        @if (tab === 'settings') {
+          <div class="admin-card">
+            <div class="admin-card-header"><h3>Datos del restaurante</h3></div>
+            <div class="settings-form">
+              <label class="field">Nombre comercial
+                <input [(ngModel)]="settings.name" maxlength="120" [disabled]="!canEdit || saving">
+              </label>
+              <label class="field">Teléfono de contacto
+                <input [(ngModel)]="settings.phone" maxlength="20" [disabled]="!canEdit || saving">
+              </label>
+              <label class="field">Horario informativo
+                <input [(ngModel)]="settings.opening_hours" maxlength="160" [disabled]="!canEdit || saving">
+              </label>
+              <div class="micro-banner">Los pedidos siguen pausados. Esta versión no permite activarlos
+                hasta completar la validación de pedidos y los controles antifraude.</div>
+              @if (canEdit) {
+                <button class="btn btn-primary" type="button" [disabled]="saving"
+                  (click)="saveSettings()">Guardar cambios</button>
+              }
+            </div>
+          </div>
+        }
+        @if (tab === 'orders') {
+          <div class="admin-card">
+            <div class="admin-card-header"><h3>Gestión de pedidos</h3><small>Próxima etapa del desarrollo</small></div>
+            <div class="admin-empty">
+              <div style="font-size:36px">📦</div>
+              <strong>Los pedidos reales aún no están habilitados</strong>
+              <p>El panel de pedidos se activará después de implementar la validación de precios,
+                estados, límites y creación segura desde el servidor.</p>
+            </div>
+          </div>
+        }
+      }
+    </div>
+  </div>
+</section>
+
+@if (editing; as product) {
+  <div class="overlay" aria-hidden="true" (click)="editing=null"></div>
+  <section class="modal" role="dialog" aria-modal="true" aria-label="Editar producto">
+    <div class="form-dialog">
+      <div class="live-modal-heading">
+        <h2>{{ product.id ? 'Editar producto' : 'Nuevo producto' }}</h2>
+        <button class="icon-button" type="button" aria-label="Cerrar"
+          [disabled]="saving" (click)="editing=null">✕</button>
+      </div>
+      <label class="field">Nombre
+        <input [(ngModel)]="product.name" required maxlength="120" [disabled]="saving">
+      </label>
+      <label class="field">Descripción
+        <textarea [(ngModel)]="product.description" maxlength="1000" rows="3" [disabled]="saving"></textarea>
+      </label>
+      <div class="form-grid">
+        <label class="field">Categoría
+          <select [(ngModel)]="product.category_id" [disabled]="saving">
+            @for (category of categories; track category.id) {
+              <option [value]="category.id">{{ category.name }}</option>
+            }
+          </select>
+        </label>
+        <label class="field">Precio (S/)
+          <input type="number" [(ngModel)]="product.price" min="0.5" max="100000" step="0.01"
+            [disabled]="saving">
+        </label>
+      </div>
+      <div class="form-grid">
+        <label class="field">Ilustración
+          <select [(ngModel)]="product.emoji" [disabled]="saving">
+            @for (symbol of emojis; track symbol) {
+              <option [value]="symbol">{{ symbol }}</option>
+            }
+          </select>
+        </label>
+        <label class="field">Etiqueta
+          <input [(ngModel)]="product.tag" maxlength="50" placeholder="Promoción" [disabled]="saving">
+        </label>
+      </div>
+      <div class="form-grid">
+        <label class="field live-check">
+          <input type="checkbox" [(ngModel)]="product.active" [disabled]="saving"> Publicado en catálogo
+        </label>
+        <label class="field live-check">
+          <input type="checkbox" [(ngModel)]="product.available" [disabled]="saving"> Disponible
+        </label>
+      </div>
+      <div class="callout-soft">Los precios se almacenan con precisión de céntimos en PostgreSQL.
+        Esta versión todavía no edita fotos ni opciones de combos.</div>
+      @if (error) { <div role="alert" class="micro-banner">{{ error }}</div> }
+      <div class="form-actions">
+        <button class="btn btn-outline" type="button" [disabled]="saving"
+          (click)="editing=null">Cancelar</button>
+        <button class="btn btn-primary" type="button" [disabled]="saving"
+          (click)="saveProduct()">{{ saving ? 'Guardando…' : 'Guardar producto' }}</button>
+      </div>
+    </div>
+  </section>
+}
