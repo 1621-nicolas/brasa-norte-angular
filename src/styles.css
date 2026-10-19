@@ -2104,3 +2104,17 @@ select:focus-visible {
 .cloud-price-edit input { width:100%; }
 .cloud-price-edit button:disabled { opacity:.55; cursor:not-allowed; }
 @media(max-width:620px) { .cloud-page { padding:14px 10px 50px; } .cloud-panel { padding:18px; border-radius:17px; } .cloud-product { padding:13px; } .cloud-products { grid-template-columns:1fr; } }
+
+/* V0.5: estilos compartidos del panel real y la demo. */
+.live-signout { width:100%; margin-top:14px; padding:11px; }
+.live-success { background:#eef7f1; color:#206747; }
+.live-inline-editor { border-top:1px solid var(--line); display:flex; align-items:end; gap:12px; padding:18px 20px; flex-wrap:wrap; }
+.live-inline-editor .field { min-width:230px; flex:1; }
+.live-modal-heading { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.live-check { display:flex; flex-direction:row; gap:8px; align-items:center; }
+.live-check input { width:auto; }
+.admin-nav button:focus-visible, .toggle:focus-visible { outline:3px solid #d79957; outline-offset:2px; }
+@media(max-width:680px) {
+  .live-inline-editor { padding:14px; }
+  .live-inline-editor .field, .live-inline-editor button { width:100%; }
+}
