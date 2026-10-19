@@ -106,3 +106,9 @@ La rama `feat/v0.3-supabase-foundation` añade un esquema de datos para varios l
 Lee [docs/FASE_03_SUPABASE.md](docs/FASE_03_SUPABASE.md) para configurar un proyecto de desarrollo, aplicar la migración y revisar la separación entre restaurantes antes de integrar Angular y Supabase Auth.
 
 Se conserva intacto el diseño, el carrito y las rutas de la versión V0.2.
+
+## Fase V0.4 — acceso Supabase (en desarrollo)
+El nuevo catálogo de prueba se abre en `/catalogo/brasa-norte` (requiere que el local esté publicado)
+y la gestión en `/ingresar` → `/gestion` (solo usuarios asignados mediante `restaurant_members`).
+La tienda antigua `/r/brasa-norte` y el panel `/admin` siguen siendo una **demo local sin protección**.
+No conectar pedidos reales allí. Ver `docs/FASE_04_ANGULAR.md`.
