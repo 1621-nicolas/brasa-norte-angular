@@ -2144,7 +2144,7 @@ select:focus-visible {
 .live-extras-dialog { margin:18px 20px; padding:22px; border:2px solid #ead9c8; border-radius:16px; background:#fffdfa; display:grid; gap:13px; }
 .live-extras-dialog h3 { margin:0; font:800 19px var(--display); }
 .live-extras-dialog .form-actions { display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap; }
-.live-food-grid { grid-template-columns: repeat(auto-fit,minmax(250px,1fr)); align-items:start; gap:22px; }
+.live-food-grid { grid-template-columns: repeat(auto-fill,minmax(min(100%,280px),1fr)); align-items:start; gap:22px; }
 .live-food-card { flex-direction:column; padding:0; overflow:hidden; background:white; }
 .live-food-image { height:190px; position:relative; display:flex; justify-content:center; align-items:center; background:linear-gradient(125deg,#fce4c9,#fff6ea); }
 .live-food-image img { width:100%; height:100%; object-fit:cover; display:block; }
