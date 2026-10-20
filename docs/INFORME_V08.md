@@ -73,11 +73,14 @@ Supabase Security Advisor no reporta hallazgos nuevos. Permanece la advertencia 
 
 ## 9. Commits y Pull Request
 
-La rama y el PR se publican después de las verificaciones locales. Los enlaces y el resultado de CI se actualizan al cerrar la entrega. [Historial de la rama](https://github.com/1621-nicolas/brasa-norte-angular/commits/feat/v0.8-test-orders).
+- Implementación publicada: [`d7e27e0`](https://github.com/1621-nicolas/brasa-norte-angular/commit/d7e27e09420124f4c1c96a30890a59cb17af8f8a), en `feat/v0.8-test-orders`. Su árbol coincide exactamente con el código local probado.
+- [PR #10](https://github.com/1621-nicolas/brasa-norte-angular/pull/10), fusionado el 20/10/2026, después de comprobar CI y ausencia de conflictos.
+- [CI del PR](https://github.com/1621-nicolas/brasa-norte-angular/actions/runs/39418653334) y [CI de la rama](https://github.com/1621-nicolas/brasa-norte-angular/actions/runs/39418648196): ambos aprobados. Incluyen compilación, Angular, PostgreSQL, HTTP e instalación de Chromium con los ocho recorridos de navegador.
+- Commit de fusión: [`2f6909f`](https://github.com/1621-nicolas/brasa-norte-angular/commit/2f6909fafe17a2988fd802396fd0d407af8402ae). El cierre documental posterior actualiza únicamente este informe y el README.
 
 ## 10. Estado de main
 
-La base auditada era `3108937`. No se fusiona hasta verificar CI y ausencia de conflictos. Esta sección se actualizará con el resultado comprobado del PR.
+`main` contiene la V0.8 desde el commit de fusión `2f6909f`. La base auditada era `3108937`. GitHub confirmó el PR como fusionable y sin conflictos; la fusión exigió el SHA exacto de la implementación comprobada. El modo comercial continúa desactivado y las pruebas quedan pausadas hasta que el propietario las habilite desde Gestión.
 
 ## 11. Problemas encontrados y resolución
 
@@ -85,10 +88,9 @@ La base auditada era `3108937`. No se fusiona hasta verificar CI y ausencia de c
 - `npm ci` sin el flag histórico falló con un error interno de npm; `npm ci --legacy-peer-deps` instaló correctamente. Se conserva el comando en CI y documentación.
 - Los timestamps locales/remotos de migraciones no coincidían desde V0.3. Se documentó la correspondencia; no se forzó un `db push` ni se reescribió historial remoto.
 - El esquema solo admitía pagos efectivo/yape: se ampliaron restricciones sin borrar datos y se agregó la combinación exclusiva simulacion/no_aplica para tests.
-- La instalación del navegador de Playwright devolvió un archivo truncado en este entorno. La prueba local utilizó Chromium 153 empaquetado temporalmente; no se incorporó esa dependencia al producto.
+- La instalación del navegador de Playwright devolvió un archivo truncado en este entorno. La prueba local utilizó Chromium 153 empaquetado temporalmente; no se incorporó esa dependencia al producto. En GitHub Actions, la instalación estándar de Playwright y los ocho recorridos finalizaron correctamente.
 - Pruebas iniciales detectaron sincronización incompleta del fixture Angular y un cierre de bloque de plantilla: corregidos y nueva batería completa aprobada.
 - El asesor marcó la tabla privada sin política: se añadió denegación explícita, conservando RLS y ausencia de permisos directos.
-
 - Revisión final: un UUID con mayúsculas podía eludir la detección de una combinación repetida. Se reprodujo mediante una prueba que fallaba, se normalizó el UUID y se verificó nuevamente en PGlite y Supabase. También se rechazan acciones nulas explícitamente.
 
 ## 12. Pendiente o no verificado
@@ -114,8 +116,8 @@ Consulta los comandos completos de actualización y clonación en [README](../RE
 
 ```powershell
 git fetch origin
-git switch feat/v0.8-test-orders
-git pull --ff-only origin feat/v0.8-test-orders
+git switch main
+git pull --ff-only origin main
 npm ci --legacy-peer-deps
 npm start
 ```

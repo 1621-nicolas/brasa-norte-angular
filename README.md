@@ -12,13 +12,13 @@ Recomendado: Node.js **24 LTS**, Git y npm. Abre PowerShell dentro de tu reposit
 # Detén antes npm start con Ctrl+C en la terminal donde se ejecuta.
 git status --short
 git fetch origin
-git switch feat/v0.8-test-orders
-git pull --ff-only origin feat/v0.8-test-orders
+git switch main
+git pull --ff-only origin main
 npm ci --legacy-peer-deps
 npm start
 ```
 
-Si `git status --short` muestra cambios locales, guárdalos en un commit antes de cambiar de rama. No uses `git reset --hard` ni borres tus archivos. Después de fusionar el PR, puedes sustituir las dos líneas de rama por `git switch main` y `git pull --ff-only origin main`.
+Si `git status --short` muestra cambios locales, guárdalos en un commit antes de cambiar de rama. No uses `git reset --hard` ni borres tus archivos. La V0.8 ya está fusionada en `main` mediante el [PR #10](https://github.com/1621-nicolas/brasa-norte-angular/pull/10), con todas las comprobaciones de CI aprobadas.
 
 Si todavía no tienes una copia Git:
 
@@ -27,7 +27,7 @@ New-Item -ItemType Directory -Force C:\Proyectos | Out-Null
 Set-Location C:\Proyectos
 git clone https://github.com/1621-nicolas/brasa-norte-angular.git
 Set-Location brasa-norte-angular
-git switch feat/v0.8-test-orders
+git switch main
 npm ci --legacy-peer-deps
 npm start
 ```
