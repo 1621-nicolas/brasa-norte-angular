@@ -44,6 +44,9 @@ export class ProductExtrasEditorComponent implements OnChanges {
   optionsForGroup(id: string): DbProductOption[] {
     return this.options.filter(o => o.group_id === id);
   }
+  activeOptionsCount(id: string): number {
+    return this.options.filter(o => o.group_id === id && o.active).length;
+  }
   format(cents: number): string { return 'S/' + (cents / 100).toFixed(2); }
   changeProduct(id: string): void {
     this.selectedProductId = id;
