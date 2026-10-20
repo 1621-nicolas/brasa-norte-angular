@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { PublicMenu } from './restaurant-api.service';
 import {
-  CatalogCartService, buildCatalogCartLine, addCatalogLine,
+  CatalogCartService, type CatalogChoices, buildCatalogCartLine, addCatalogLine,
   changeCatalogQuantity, catalogLineTotal
 } from './catalog-cart.service';
 
@@ -35,7 +35,7 @@ const menu: PublicMenu = {
 };
 
 const valid = { g1: ['o2'], g2: ['o3'] };
-const line = (id: string, choices = valid, qty = 1) =>
+const line = (id: string, choices: CatalogChoices = valid, qty = 1) =>
   buildCatalogCartLine(menu, 'pollo', choices, qty, id);
 
 describe('V0.7 · carrito conectado a la carta de Supabase', () => {
