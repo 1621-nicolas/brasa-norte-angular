@@ -1,0 +1,177 @@
+<main class="cloud-page live-catalog-page">
+  <section class="cloud-panel live-market-shell">
+    <a routerLink="/r/brasa-norte" class="cloud-back">← Volver a la demostración original</a>
+    @if (loading()) {
+      <div class="micro-banner" role="status">Cargando carta desde Supabase…</div>
+    } @else if (error()) {
+      <div class="micro-banner" role="alert">{{ error() }}</div>
+    } @else if (menu(); as currentMenu) {
+      <div class="section-kicker">CARTA DIGITAL · BRASA NORTE</div>
+      <div class="cloud-heading">
+        <div>
+          <h1>{{ currentMenu.restaurant.name }}</h1>
+          <p>{{ currentMenu.restaurant.opening_hours || 'Consulta horarios con el restaurante' }}</p>
+        </div>
+        <span class="demo-pill">SOLO DEMOSTRACIÓN</span>
+      </div>
+      <div class="micro-banner">
+        Personaliza tus productos y arma un carrito de prueba. No se envían pedidos,
+        no se solicitan datos personales ni se cobran pagos.
+      </div>
+
+      @if (cartError()) {
+        <div class="micro-banner live-cart-warning" role="alert">{{ cartError() }}</div>
+      }
+      @if (cartNotice()) {
+        <div class="micro-banner live-success" role="status">{{ cartNotice() }}</div>
+      }
+
+      <div class="live-market-layout">
+        <div class="live-market-menu">
+          @for (category of currentMenu.categories; track category.id) {
+            <h2 class="cloud-category">{{ category.name }}</h2>
+            <div class="cloud-products live-food-grid">
+              @for (p of productsInCategory(category.id); track p.id) {
+                <article class="cloud-product live-food-card">
+                  <div class="live-food-image">
+                    @if (p.image_url) {
+                      <img [src]="p.image_url" [alt]="'Fotografía de ' + p.name" loading="lazy">
+                    } @else {
+                      <span aria-hidden="true">{{ p.emoji }}</span>
+                    }
+                    @if (p.tag) { <span class="live-food-tag">{{ p.tag }}</span> }
+                  </div>
+                  <div class="live-food-details">
+                    <h3>{{ p.name }}</h3>
+                    <p>{{ p.description }}</p>
+                    <div class="live-base-price">
+                      <strong>{{ price(p.price_cents) }}</strong>
+                      <span>{{ p.available ? 'Disponible' : 'Agotado' }}</span>
+                    </div>
+                    @for (group of groupsForProduct(p.id); track group.id) {
+                      <fieldset class="live-option-set" [disabled]="!p.available">
+                        <legend>{{ group.name }}
+                          <small> · Elige {{ group.min_select }}–{{ group.max_select }}</small>
+                        </legend>
+                        <div class="live-choice-list">
+                          @for (option of optionsForGroup(group.id); track option.id) {
+                            <button type="button" class="live-choice-button"
+                              [disabled]="!p.available"
+                              [class.selected]="isPicked(group.id, option.id)"
+                              [attr.aria-pressed]="isPicked(group.id, option.id)"
+                              (click)="toggleChoice(group, option)">
+                              <span>{{ isPicked(group.id, option.id) ? '✓ ' : '+ ' }}{{ option.name }}</span>
+                              <small>+ {{ price(option.extra_price_cents) }}</small>
+                            </button>
+                          } @empty {
+                            <div class="live-muted">No hay opciones disponibles para este grupo.</div>
+                          }
+                        </div>
+                      </fieldset>
+                    }
+                    <div class="live-estimated-total">
+                      <div>
+                        <small>Precio unitario de prueba</small>
+                        <strong>{{ price(previewPrice(p)) }}</strong>
+                      </div>
+                      @if (hasMissingRequiredChoices(p.id)) {
+                        <span>Completa las elecciones obligatorias</span>
+                      } @else {
+                        <span>Listo para añadir</span>
+                      }
+                    </div>
+                    <div class="live-buy-actions">
+                      <div class="live-stepper" role="group" [attr.aria-label]="'Cantidad de ' + p.name">
+                        <button type="button" (click)="adjustProductQuantity(p.id, -1)"
+                          [disabled]="!p.available || quantityFor(p.id)===1"
+                          [attr.aria-label]="'Reducir cantidad de ' + p.name">−</button>
+                        <span>{{ quantityFor(p.id) }}</span>
+                        <button type="button" (click)="adjustProductQuantity(p.id, 1)"
+                          [disabled]="!p.available || quantityFor(p.id)===20"
+                          [attr.aria-label]="'Aumentar cantidad de ' + p.name">+</button>
+                      </div>
+                      <button type="button" class="btn btn-primary live-add-button"
+                        [disabled]="!p.available || hasMissingRequiredChoices(p.id)"
+                        (click)="addToCart(p)">+ Añadir al carrito</button>
+                    </div>
+                  </div>
+                </article>
+              } @empty {
+                <div class="live-muted">Sin productos en esta categoría.</div>
+              }
+            </div>
+          } @empty {
+            <p>Este restaurante todavía no tiene categorías publicadas.</p>
+          }
+        </div>
+
+        @if (cartOpen()) {
+          <button class="live-cart-scrim" type="button" (click)="closeCart()"
+            aria-label="Cerrar carrito"></button>
+        }
+        <aside class="live-cart-panel" [class.live-cart-open]="cartOpen()" aria-label="Carrito de demostración">
+          <div class="live-cart-heading">
+            <div>
+              <div class="section-kicker">TU SELECCIÓN</div>
+              <h2>Mi carrito <span>({{ cart.itemCount() }})</span></h2>
+            </div>
+            <button class="live-cart-close" type="button" (click)="closeCart()"
+              aria-label="Cerrar carrito">✕</button>
+          </div>
+          @for (line of cart.lines(); track line.id) {
+            <div class="live-cart-line">
+              <div class="live-cart-line-main">
+                <span class="live-cart-line-emoji">{{ line.emoji }}</span>
+                <div>
+                  <strong>{{ line.name }}</strong>
+                  @for (opt of line.options; track opt.id) {
+                    <small>{{ opt.groupName }}: {{ opt.name }}
+                      @if (opt.extraPriceCents) { (+{{ price(opt.extraPriceCents) }}) }
+                    </small>
+                  }
+                </div>
+              </div>
+              <div class="live-cart-line-actions">
+                <div class="live-stepper" role="group" [attr.aria-label]="'Cantidad de ' + line.name + ' en carrito'">
+                  <button type="button" [disabled]="line.quantity===1"
+                    (click)="changeCartQuantity(line.id,-1)"
+                    [attr.aria-label]="'Restar ' + line.name">−</button>
+                  <span>{{ line.quantity }}</span>
+                  <button type="button" [disabled]="line.quantity===20"
+                    (click)="changeCartQuantity(line.id,1)"
+                    [attr.aria-label]="'Sumar ' + line.name">+</button>
+                </div>
+                <strong>{{ price(lineTotal(line)) }}</strong>
+                <button type="button" class="live-cart-remove" (click)="removeCartLine(line.id)"
+                  [attr.aria-label]="'Quitar ' + line.name">Quitar</button>
+              </div>
+            </div>
+          } @empty {
+            <div class="live-cart-empty">
+              <span aria-hidden="true">🧺</span>
+              <strong>Tu carrito está vacío</strong>
+              <p>Elige tus platos y complementos para crear una compra de demostración.</p>
+            </div>
+          }
+          <div class="live-cart-summary">
+            <div class="live-cart-subtotal">
+              <span>Subtotal de prueba</span>
+              <strong>{{ price(cart.subtotalCents()) }}</strong>
+            </div>
+            <p>Sin tarifa de reparto. Importes informativos, no son una cotización ni una venta.</p>
+            <button type="button" class="btn btn-primary live-cart-checkout" disabled>
+              Pedidos reales desactivados
+            </button>
+            @if (cart.lines().length) {
+              <button type="button" class="live-clear-button" (click)="clearCart()">Vaciar carrito</button>
+            }
+          </div>
+        </aside>
+      </div>
+      <button class="live-mobile-cart-button" type="button" (click)="toggleCart()"
+        [attr.aria-expanded]="cartOpen()" aria-label="Abrir carrito de demostración">
+        🛒 Ver carrito ({{ cart.itemCount() }}) · {{ price(cart.subtotalCents()) }}
+      </button>
+    }
+  </section>
+</main>

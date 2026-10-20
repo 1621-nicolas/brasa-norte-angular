@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, HostListener, OnInit, inject, signal } from '@angular/core';
+import { CatalogCartService, CatalogCartLine, catalogLineTotal } from '../core/catalog-cart.service';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
   DbOptionGroup, DbProduct, DbProductOption, PublicMenu, RestaurantApiService
@@ -8,94 +9,31 @@ import {
   selector: 'app-live-catalog',
   standalone: true,
   imports: [RouterLink],
-  template: `
-  <main class="cloud-page live-catalog-page">
-    <section class="cloud-panel">
-      <a routerLink="/r/brasa-norte" class="cloud-back">← Volver a la tienda de demostración</a>
-      @if (loading()) {
-        <div class="micro-banner" role="status">Cargando carta desde Supabase…</div>
-      } @else if (error()) {
-        <div class="micro-banner" role="alert">{{ error() }}</div>
-      } @else if (menu(); as currentMenu) {
-        <div class="section-kicker">CARTA DIGITAL · BRASA NORTE</div>
-        <div class="cloud-heading">
-          <div>
-            <h1>{{ currentMenu.restaurant.name }}</h1>
-            <p>{{ currentMenu.restaurant.opening_hours || 'Consulta horarios con el local' }}</p>
-          </div>
-          <span class="demo-pill">PEDIDOS DESACTIVADOS</span>
-        </div>
-        <div class="micro-banner">Explora los productos y personaliza tus opciones.
-          Esta carta es una demostración y no procesa pedidos ni pagos.</div>
-        @for (category of currentMenu.categories; track category.id) {
-          <h2 class="cloud-category">{{ category.name }}</h2>
-          <div class="cloud-products live-food-grid">
-            @for (p of productsInCategory(category.id); track p.id) {
-              <article class="cloud-product live-food-card">
-                <div class="live-food-image">
-                  @if (p.image_url) {
-                    <img [src]="p.image_url" [alt]="'Fotografía de '+p.name" loading="lazy">
-                  } @else { <span aria-hidden="true">{{ p.emoji }}</span> }
-                  @if (p.tag) { <span class="live-food-tag">{{ p.tag }}</span> }
-                </div>
-                <div class="live-food-details">
-                  <h3>{{ p.name }}</h3>
-                  <p>{{ p.description }}</p>
-                  <div class="live-base-price">
-                    <strong>{{ price(p.price_cents) }}</strong>
-                    <span>{{ p.available ? 'Disponible' : 'Agotado' }}</span>
-                  </div>
-                  @for (group of groupsForProduct(p.id); track group.id) {
-                    <fieldset class="live-option-set" [disabled]="!p.available">
-                      <legend>{{ group.name }}
-                        <small> · Elige {{ group.min_select }}–{{ group.max_select }}</small>
-                      </legend>
-                      <div class="live-choice-list">
-                        @for (option of optionsForGroup(group.id); track option.id) {
-                          <button type="button" class="live-choice-button"
-                            [disabled]="!p.available"
-                            [class.selected]="isPicked(group.id, option.id)"
-                            [attr.aria-pressed]="isPicked(group.id, option.id)"
-                            (click)="toggleChoice(group, option)">
-                            <span>{{ isPicked(group.id, option.id) ? '✓ ' : '+ ' }}{{ option.name }}</span>
-                            <small>+ {{ price(option.extra_price_cents) }}</small>
-                          </button>
-                        } @empty {
-                          <div class="live-muted">No hay opciones disponibles para este grupo.</div>
-                        }
-                      </div>
-                    </fieldset>
-                  }
-                  @if (groupsForProduct(p.id).length) {
-                    <div class="live-estimated-total">
-                      <div><small>Precio de prueba</small><strong>{{ price(previewPrice(p)) }}</strong></div>
-                      @if (hasMissingRequiredChoices(p.id)) {
-                        <span>Completa las elecciones obligatorias</span>
-                      } @else { <span>Opciones seleccionadas</span> }
-                    </div>
-                  }
-                </div>
-              </article>
-            }
-          </div>
-        } @empty { <p>Aún no hay categorías visibles.</p> }
-      }
-    </section>
-  </main>`
+  templateUrl: './live-catalog.component.html'
 })
 export class LiveCatalogComponent implements OnInit {
   private readonly api = inject(RestaurantApiService);
   private readonly route = inject(ActivatedRoute);
+  readonly cart = inject(CatalogCartService);
   readonly loading = signal(true);
   readonly error = signal('');
   readonly menu = signal<PublicMenu | null>(null);
   readonly picked = signal<Record<string, string[]>>({});
+  readonly quantities = signal<Record<string, number>>({});
+  readonly cartOpen = signal(false);
+  readonly cartNotice = signal('');
+  readonly cartError = signal('');
 
   async ngOnInit(): Promise<void> {
     try {
       const slug = this.route.snapshot.paramMap.get('slug') ?? '';
       const result = await this.api.publicMenu(slug);
       this.menu.set(result);
+      if (result) {
+        this.cart.setRestaurant(result.restaurant.id);
+        this.picked.set({});
+        this.quantities.set({});
+      }
       if (!result) this.error.set('La carta no está publicada o el restaurante no existe.');
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'No fue posible consultar la carta.');
@@ -137,6 +75,38 @@ export class LiveCatalogComponent implements OnInit {
     }
     return total;
   }
+  quantityFor(productId: string): number {
+    return this.quantities()[productId] ?? 1;
+  }
+  adjustProductQuantity(productId: string, delta: number): void {
+    this.quantities.update(prev => ({
+      ...prev, [productId]: Math.max(1, Math.min(20, (prev[productId] ?? 1) + delta))
+    }));
+  }
+  addToCart(p: DbProduct): void {
+    this.cartError.set('');
+    this.cartNotice.set('');
+    const menu = this.menu();
+    if (!menu || !p.available || this.hasMissingRequiredChoices(p.id)) {
+      this.cartError.set('Completa las opciones obligatorias antes de añadir el producto.');
+      return;
+    }
+    try {
+      this.cart.add(menu, p.id, this.picked(), this.quantityFor(p.id));
+      this.cartNotice.set('Producto añadido al carrito de demostración.');
+      this.cartOpen.set(true);
+    } catch (err) {
+      this.cartError.set(err instanceof Error ? err.message : 'No se pudo añadir el producto.');
+    }
+  }
+  changeCartQuantity(id: string, delta: number): void { this.cart.changeQuantity(id, delta); }
+  removeCartLine(id: string): void { this.cart.remove(id); }
+  clearCart(): void { this.cart.clear(); this.cartNotice.set('Carrito vaciado.'); }
+  lineTotal(line: CatalogCartLine): number { return catalogLineTotal(line); }
+  closeCart(): void { this.cartOpen.set(false); }
+  toggleCart(): void { this.cartOpen.update(open => !open); }
+  @HostListener('document:keydown.escape')
+  onEscape(): void { this.cartOpen.set(false); }
   price(cents: number): string {
     return 'S/' + (cents / 100).toFixed(2);
   }
