@@ -41,6 +41,12 @@
             </div>
           }
         </div>
+        @if (group.active && activeOptionsCount(group.id) < group.min_select) {
+          <div class="micro-banner" role="status">
+            ⚠ Este grupo obligatorio tiene {{ activeOptionsCount(group.id) }} opciones activas,
+            pero exige {{ group.min_select }}. Añade o activa complementos antes de usarlo en una carta comercial.
+          </div>
+        }
         @for (option of optionsForGroup(group.id); track option.id) {
           <div class="live-option-row">
             <span>{{ option.name }} <small>{{ option.active ? '' : '· Desactivada' }}</small></span>
