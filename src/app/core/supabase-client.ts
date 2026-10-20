@@ -7,6 +7,6 @@ import { createClient } from '@supabase/supabase-js';
  */
 export const supabase = createClient(
   'https://anrkxjythmkzttcypjmy.supabase.co',
-  'REEMPLAZAR_CON_TU_CLAVE_PUBLICABLE',
+  'sb_publishable_kACnoYeAarlo_V-gCufI1g_sp6CDaN3',
   { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } },
 );
