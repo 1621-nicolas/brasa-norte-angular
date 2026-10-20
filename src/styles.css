@@ -2175,3 +2175,66 @@ select:focus-visible {
   .live-extras-dialog { margin:12px; padding:14px; }
   .live-food-image { height:165px; }
 }
+
+/* V0.7 · Carrito temporal conectado al catálogo Supabase (solo demostración) */
+.live-market-shell { max-width: 1260px; }
+.live-market-layout { display:grid; grid-template-columns:minmax(0,1fr) 310px; align-items:start; gap:24px; }
+.live-market-menu { min-width:0; }
+.live-market-menu .cloud-category:first-child { margin-top:4px; }
+.live-market-menu .live-food-grid { margin-bottom:23px; }
+.live-buy-actions { display:flex; gap:10px; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-top:18px; }
+.live-stepper { display:inline-flex; align-items:center; border:1px solid #e8ddcc; border-radius:11px; background:#fff; min-width:112px; overflow:hidden; }
+.live-stepper button { border:0; background:transparent; width:35px; height:36px; cursor:pointer; color:#a34225; font-weight:900; font-size:19px; }
+.live-stepper button:hover:not(:disabled) { background:#f9ecdf; }
+.live-stepper button:disabled { opacity:.3; cursor:not-allowed; }
+.live-stepper span { min-width:31px; text-align:center; font-size:13px; font-weight:800; }
+.live-add-button { flex:1; min-width:148px; font-size:12px; white-space:nowrap; }
+.live-add-button:disabled { opacity:.5; cursor:not-allowed; }
+.live-cart-panel { border:1px solid #eadfcd; border-radius:17px; background:#fffdf9; padding:19px; position:sticky; top:18px; max-height:calc(100vh - 40px); overflow-y:auto; box-shadow:0 8px 29px #1f160608; }
+.live-cart-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; padding-bottom:15px; border-bottom:1px solid #e9dccd; }
+.live-cart-heading h2 { margin:8px 0 0; font-size:22px; line-height:1.2; }
+.live-cart-heading h2 span { color:#ad4427; font-size:17px; }
+.live-cart-close { display:none; }
+.live-cart-line { border-bottom:1px solid #ece1d2; padding:16px 0; }
+.live-cart-line-main { display:flex; gap:11px; align-items:flex-start; }
+.live-cart-line-main > div { flex:1; }
+.live-cart-line-main strong { display:block; font-size:13px; }
+.live-cart-line-main small { display:block; color:#766d62; font-size:11px; margin-top:5px; line-height:1.4; }
+.live-cart-line-emoji { display:flex; align-items:center; justify-content:center; width:42px; height:42px; flex:none; border-radius:10px; background:#f6e5d1; font-size:23px; }
+.live-cart-line-actions { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:9px; margin-top:12px; }
+.live-cart-line-actions .live-stepper { min-width:95px; }
+.live-cart-line-actions .live-stepper button { width:30px; height:30px; }
+.live-cart-line-actions .live-stepper span { min-width:27px; }
+.live-cart-line-actions strong { color:#ac472c; font-size:13px; }
+.live-cart-remove { border:0; background:transparent; color:#a94b35; font-size:11px; text-decoration:underline; cursor:pointer; }
+.live-cart-summary { margin-top:15px; }
+.live-cart-subtotal { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.live-cart-subtotal span { font-size:13px; }
+.live-cart-subtotal strong { font-size:23px; color:#b74425; }
+.live-cart-summary p { color:#766d62; font-size:11px; line-height:1.5; margin:10px 0 16px; }
+.live-cart-checkout { display:block; width:100%; opacity:.65; cursor:not-allowed; }
+.live-clear-button { display:block; border:0; background:transparent; color:#9c4d32; cursor:pointer; text-decoration:underline; font-size:12px; margin:15px auto 0; }
+.live-cart-empty { display:grid; justify-items:center; gap:6px; text-align:center; padding:23px 5px; color:#5d544a; }
+.live-cart-empty span { font-size:36px; }
+.live-cart-empty strong { font-size:14px; }
+.live-cart-empty p { font-size:12px; }
+.live-cart-warning { background:#fff0df; color:#854522; }
+.live-mobile-cart-button,.live-cart-scrim { display:none; }
+@media(max-width:910px) {
+  .live-market-layout { display:block; }
+  .live-cart-panel { position:fixed; z-index:60; top:0; right:0; bottom:0; width:min(390px,92vw); max-height:none; height:100dvh; border-radius:18px 0 0 18px; overflow:auto; transform:translateX(105%); visibility:hidden; transition:transform .2s ease,visibility .2s; }
+  .live-cart-panel.live-cart-open { visibility:visible; transform:translateX(0); }
+  .live-cart-scrim { display:block; position:fixed; z-index:59; inset:0; background:#12100bbb; border:0; cursor:pointer; }
+  .live-cart-close { display:block; border:0; background:transparent; font-size:22px; cursor:pointer; padding:4px 8px; }
+  .live-mobile-cart-button { display:block; position:fixed; z-index:50; bottom:calc(12px + env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); background:#bf4024; color:white; border:0; border-radius:13px; padding:14px 20px; font-weight:800; box-shadow:0 8px 30px #18120a44; min-width:min(430px,calc(100vw - 28px)); cursor:pointer; }
+  .live-market-shell { padding-bottom:70px; }
+}
+@media(max-width:600px) {
+  .live-market-menu .live-food-grid { grid-template-columns:1fr; }
+  .live-buy-actions { align-items:stretch; }
+  .live-add-button { padding:12px; }
+  .live-cart-panel { padding:18px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .live-cart-panel { transition:none; }
+}
