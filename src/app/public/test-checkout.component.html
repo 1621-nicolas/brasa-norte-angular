@@ -1,0 +1,254 @@
+<section
+  class="test-checkout"
+  aria-labelledby="checkout-title"
+  [attr.aria-busy]="busy()"
+>
+  <button
+    type="button"
+    class="small-ghost"
+    (click)="back.emit()"
+    [disabled]="busy() || uncertain()"
+  >
+    ← Editar mi selección
+  </button>
+  <h2 id="checkout-title">Confirmar simulación</h2>
+  <p class="test-intro">
+    Ensaya el pedido de principio a fin. Usa únicamente los datos ficticios de
+    este formulario. No hay cobro ni entrega real.
+  </p>
+  @if (loading()) {
+    <p role="status">Comprobando acceso a pruebas…</p>
+  }
+  @if (errors().length) {
+    <div class="test-error" role="alert">
+      <ul>
+        @for (error of errors(); track error) {
+          <li>{{ error }}</li>
+        }
+      </ul>
+    </div>
+  }
+  @if (notice()) {
+    <p class="test-notice" role="status">{{ notice() }}</p>
+  }
+  @if (success(); as order) {
+    <div class="test-receipt" role="status">
+      <svg
+        width="48"
+        height="48"
+        viewBox="0 0 48 48"
+        fill="none"
+        aria-hidden="true"
+      >
+        <circle cx="24" cy="24" r="21" stroke="currentColor" stroke-width="2" />
+        <path d="m14 24 7 7 14-15" stroke="currentColor" stroke-width="3" />
+      </svg>
+      <h3>Pedido de prueba registrado</h3>
+      <p>El restaurante ya puede atender esta simulación desde su panel.</p>
+      <strong class="test-code">{{ order.code }}</strong>
+      <p>
+        Total validado: <strong>{{ price(order.total_cents) }}</strong>
+      </p>
+      <p>No se realizará ningún cobro ni reparto.</p>
+      <a
+        class="btn btn-primary"
+        routerLink="/gestion"
+        [queryParams]="{ tab: 'orders' }"
+        >Ver pedidos en gestión</a
+      >
+    </div>
+  } @else if (!loading() && !access()?.can_create) {
+    <div class="test-empty">
+      <h3>Pruebas reservadas al equipo</h3>
+      <p>
+        El propietario debe habilitar las simulaciones y autorizar tu cuenta
+        desde Gestión → Pedidos de prueba.
+      </p>
+      <a class="btn btn-outline" routerLink="/ingresar">Iniciar sesión</a>
+      <a
+        class="small-ghost"
+        routerLink="/gestion"
+        [queryParams]="{ tab: 'orders' }"
+        >Ir a gestión</a
+      >
+    </div>
+  } @else if (access()?.can_create) {
+    <form (ngSubmit)="submit()" novalidate>
+      <fieldset
+        class="test-fields"
+        [disabled]="busy() || uncertain() || refreshing()"
+      >
+        <legend>¿Cómo recibirías el pedido?</legend>
+        <div class="test-fulfillment">
+          <label [class.selected]="form.fulfillment === 'pickup'"
+            ><input
+              type="radio"
+              name="fulfillment"
+              value="pickup"
+              [(ngModel)]="form.fulfillment"
+            />
+            <span
+              ><strong>Recojo en restaurante</strong
+              ><small>Sin costo de reparto</small></span
+            ></label
+          >
+          <label [class.selected]="form.fulfillment === 'delivery'"
+            ><input
+              type="radio"
+              name="fulfillment"
+              value="delivery"
+              [(ngModel)]="form.fulfillment"
+            />
+            <span
+              ><strong>Delivery de prueba</strong
+              ><small>Tarifa según la zona</small></span
+            ></label
+          >
+        </div>
+        <div class="test-form-grid">
+          <label class="field"
+            >Cliente ficticio<select
+              name="customer"
+              [(ngModel)]="form.customer_name"
+            >
+              <option>Cliente de prueba A</option>
+              <option>Cliente de prueba B</option>
+              <option>Cliente de prueba C</option>
+            </select></label
+          >
+          <label class="field"
+            >Teléfono ficticio<input
+              name="phone"
+              [value]="form.customer_phone"
+              readonly
+              aria-describedby="fake-phone"
+          /></label>
+        </div>
+        <p id="fake-phone" class="test-hint">
+          Número fijo de demostración. No se enviarán mensajes ni llamadas.
+        </p>
+        @if (form.fulfillment === "delivery") {
+          <div class="test-form-grid">
+            <label class="field"
+              >Zona de delivery<select
+                name="zone"
+                [(ngModel)]="form.delivery_zone_id"
+                required
+              >
+                <option value="">Selecciona una zona</option>
+                @for (zone of zones(); track zone.id) {
+                  <option [value]="zone.id">
+                    {{ zone.name }} · {{ price(zone.fee_cents) }}
+                  </option>
+                }
+              </select></label
+            >
+            <label class="field"
+              >Dirección ficticia<select
+                name="address"
+                [(ngModel)]="form.delivery_address"
+              >
+                <option>Dirección de prueba A</option>
+                <option>Dirección de prueba B</option>
+                <option>Dirección de prueba C</option>
+              </select></label
+            >
+          </div>
+          @if (!zones().length) {
+            <p role="status">
+              No hay zonas disponibles. Puedes simular un recojo.
+            </p>
+          }
+          <label class="field"
+            >Referencia ficticia (opcional)<input
+              name="reference"
+              [(ngModel)]="form.delivery_reference"
+              maxlength="300"
+              placeholder="Ej.: frente al parque de prueba"
+          /></label>
+        }
+        <label class="field"
+          >Observaciones de prueba (opcional)<textarea
+            name="notes"
+            [(ngModel)]="form.notes"
+            maxlength="1000"
+            rows="3"
+            placeholder="Ej.: sin ají. No ingreses información personal."
+          ></textarea>
+        </label>
+        <div class="test-review">
+          <h3>Revisa tu selección</h3>
+          @for (line of cart.lines(); track line.id) {
+            <div class="test-review-line">
+              <div>
+                <strong>{{ line.quantity }} × {{ line.name }}</strong>
+                @for (opt of line.options; track opt.id) {
+                  <small>{{ opt.name }}</small>
+                }
+              </div>
+              <strong>{{ price(line.quantity * line.unitPriceCents) }}</strong>
+            </div>
+          }
+          <div class="test-review-line">
+            <span>Subtotal provisional</span
+            ><span>{{ price(cart.subtotalCents()) }}</span>
+          </div>
+          <div class="test-review-line">
+            <span>{{
+              form.fulfillment === "delivery" ? "Delivery de prueba" : "Recojo"
+            }}</span
+            ><span>{{ price(fee()) }}</span>
+          </div>
+          <div class="test-review-total">
+            <strong>Total provisional</strong
+            ><strong>{{ price(total()) }}</strong>
+          </div>
+          <p class="test-hint">
+            El servidor comprobará los precios y la disponibilidad antes de
+            registrar la simulación.
+          </p>
+        </div>
+        <label class="test-consent"
+          ><input
+            type="checkbox"
+            name="consent"
+            [(ngModel)]="form.simulation_confirmed"
+          /><span
+            >Confirmo que los datos son ficticios y que este pedido no genera
+            una venta ni un pago.</span
+          ></label
+        >
+      </fieldset>
+      @if (uncertain()) {
+        <p class="test-notice">
+          No recibimos la confirmación. Reintenta para consultar el resultado de
+          la misma operación. El formulario permanece bloqueado para evitar
+          duplicados.
+        </p>
+      }
+      <div class="test-actions">
+        <button
+          class="btn btn-primary"
+          type="submit"
+          [disabled]="busy() || refreshing()"
+        >
+          {{
+            busy()
+              ? "Validando pedido…"
+              : uncertain()
+                ? "Reintentar confirmación"
+                : "Confirmar pedido de prueba"
+          }}
+        </button>
+        <button
+          class="small-ghost"
+          type="button"
+          (click)="refreshPrices()"
+          [disabled]="busy() || uncertain() || refreshing()"
+        >
+          {{ refreshing() ? "Actualizando…" : "Actualizar precios" }}
+        </button>
+      </div>
+    </form>
+  }
+</section>

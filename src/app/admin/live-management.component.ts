@@ -1,7 +1,8 @@
 import { ChangeDetectorRef, Component, HostListener, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ProductExtrasEditorComponent } from './product-extras-editor.component';
-import { Router, RouterLink } from '@angular/router';
+import { TestOrdersComponent } from './test-orders.component';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   DbCategory, DbProduct, RestaurantMember, RestaurantApiService, RestaurantSummary
 } from '../core/restaurant-api.service';
@@ -22,7 +23,7 @@ interface ProductDraft {
 @Component({
   standalone: true,
   selector: 'app-live-management',
-  imports: [FormsModule, RouterLink, ProductExtrasEditorComponent],
+  imports: [FormsModule, RouterLink, ProductExtrasEditorComponent, TestOrdersComponent],
   templateUrl: './live-management.component.html'
 })
 export class LiveManagementComponent implements OnInit {
@@ -30,6 +31,7 @@ export class LiveManagementComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
   private requestId = 0;
+  private readonly route = inject(ActivatedRoute);
 
   memberships: RestaurantMember[] = [];
   selected: RestaurantMember | null = null;
@@ -72,6 +74,7 @@ export class LiveManagementComponent implements OnInit {
   escape(): void { this.editing = null; }
 
   async ngOnInit(): Promise<void> {
+    if (this.route.snapshot.queryParamMap.get('tab') === 'orders') this.tab = 'orders';
     try {
       this.memberships = await this.api.memberships();
       if (!this.memberships.length) {

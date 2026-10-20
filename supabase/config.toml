@@ -1,0 +1,3 @@
+project_id = "brasa-norte-angular"
+[functions.test-orders]
+verify_jwt = false

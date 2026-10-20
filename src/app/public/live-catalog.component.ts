@@ -1,3 +1,4 @@
+import { TestCheckoutComponent } from './test-checkout.component';
 import { Component, HostListener, OnInit, inject, signal } from '@angular/core';
 import { CatalogCartService, CatalogCartLine, catalogLineTotal } from '../core/catalog-cart.service';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -8,7 +9,7 @@ import {
 @Component({
   selector: 'app-live-catalog',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, TestCheckoutComponent],
   templateUrl: './live-catalog.component.html'
 })
 export class LiveCatalogComponent implements OnInit {
@@ -23,6 +24,11 @@ export class LiveCatalogComponent implements OnInit {
   readonly cartOpen = signal(false);
   readonly cartNotice = signal('');
   readonly cartError = signal('');
+  readonly checkoutOpen = signal(false);
+  readonly checkoutBusy = signal(false);
+  readonly brokenImages = signal<Record<string,boolean>>({});
+  imageFailed(id: string) { this.brokenImages.update(current=>({...current,[id]:true})); }
+  openCheckout() { this.cartNotice.set(''); this.checkoutOpen.set(true); this.closeCart(); window.scrollTo({top:0,behavior:'smooth'}); }
 
   async ngOnInit(): Promise<void> {
     try {
@@ -99,9 +105,9 @@ export class LiveCatalogComponent implements OnInit {
       this.cartError.set(err instanceof Error ? err.message : 'No se pudo añadir el producto.');
     }
   }
-  changeCartQuantity(id: string, delta: number): void { this.cart.changeQuantity(id, delta); }
-  removeCartLine(id: string): void { this.cart.remove(id); }
-  clearCart(): void { this.cart.clear(); this.cartNotice.set('Carrito vaciado.'); }
+  changeCartQuantity(id: string, delta: number): void { if (!this.checkoutBusy()) this.cart.changeQuantity(id, delta); }
+  removeCartLine(id: string): void { if (!this.checkoutBusy()) this.cart.remove(id); }
+  clearCart(): void { if (this.checkoutBusy()) return; this.cart.clear(); this.cartNotice.set('Carrito vaciado.'); }
   lineTotal(line: CatalogCartLine): number { return catalogLineTotal(line); }
   closeCart(): void { this.cartOpen.set(false); }
   toggleCart(): void { this.cartOpen.update(open => !open); }

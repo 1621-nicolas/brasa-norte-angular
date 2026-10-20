@@ -24,7 +24,7 @@
         <button type="button" [class.active]="tab==='categories'" (click)="changeTab('categories')">▤ &nbsp; Categorías</button>
         <button type="button" [class.active]="tab==='combos'" (click)="changeTab('combos')">✦ &nbsp; Combos y extras</button>
         <button type="button" [class.active]="tab==='settings'" (click)="changeTab('settings')">⚙ &nbsp; Configuración</button>
-        <button type="button" [class.active]="tab==='orders'" (click)="changeTab('orders')">▤ &nbsp; Pedidos (próximamente)</button>
+        <button type="button" [class.active]="tab==='orders'" (click)="changeTab('orders')">▤ &nbsp; Pedidos de prueba</button>
       </nav>
       @if (selected; as s) {
         <a class="btn btn-outline back-store" [routerLink]="['/catalogo', s.restaurant.slug]">← Ver carta publicada</a>
@@ -51,7 +51,7 @@
       } @else if (selected; as s) {
         <div class="micro-banner">
           {{ s.restaurant.name }} · Rol: {{ s.role }}.
-          @if (!canEdit) { Tu cuenta solo puede consultar esta información. }
+          @if (!canEdit) { Puedes consultar la carta y atender pedidos de prueba. }
           Los pedidos reales continúan deshabilitados.
         </div>
         @if (tab === 'products') {
@@ -158,15 +158,7 @@
           </div>
         }
         @if (tab === 'orders') {
-          <div class="admin-card">
-            <div class="admin-card-header"><h3>Gestión de pedidos</h3><small>Próxima etapa del desarrollo</small></div>
-            <div class="admin-empty">
-              <div style="font-size:36px">📦</div>
-              <strong>Los pedidos reales aún no están habilitados</strong>
-              <p>El panel de pedidos se activará después de implementar la validación de precios,
-                estados, límites y creación segura desde el servidor.</p>
-            </div>
-          </div>
+          <app-test-orders [restaurantId]="s.restaurant_id" [slug]="s.restaurant.slug" [role]="s.role" />
         }
       }
     </div>

@@ -1,0 +1,310 @@
+<section class="test-order-workspace" aria-label="Pedidos de prueba">
+  <div class="test-toolbar">
+    <div>
+      <h3>Pedidos de prueba</h3>
+      <p>Simulaciones del equipo. No representan ventas ni entregas reales.</p>
+    </div>
+    <a class="btn btn-outline" [routerLink]="['/catalogo', slug()]"
+      >Crear simulación</a
+    >
+  </div>
+  @if (error()) {
+    <p class="test-error" role="alert">{{ error() }}</p>
+  }
+  @if (notice()) {
+    <p class="test-notice" role="status">{{ notice() }}</p>
+  }
+  <div class="test-mode">
+    <div>
+      <strong>{{
+        access()?.enabled ? "Simulaciones habilitadas" : "Simulaciones pausadas"
+      }}</strong>
+      <p>
+        Solo las cuentas autorizadas pueden registrar pedidos. El equipo del
+        restaurante puede atenderlos.
+      </p>
+    </div>
+    @if (role() === "owner") {
+      <button
+        type="button"
+        class="small-action"
+        (click)="configure()"
+        [disabled]="busy() || !access()"
+      >
+        {{
+          access()?.enabled
+            ? "Pausar simulaciones"
+            : "Habilitar pruebas con mi cuenta"
+        }}
+      </button>
+    }
+  </div>
+  <div class="test-stat-grid" aria-label="Resumen de todas las simulaciones">
+    @for (status of statuses; track status) {
+      <div class="test-stat">
+        <span>{{ labels[status] }}</span
+        ><strong>{{ summary().counts[status] || 0 }}</strong>
+      </div>
+    }
+  </div>
+  <p class="test-summary">
+    Importe simulado acumulado:
+    <strong>{{ price(summary().total_cents) }}</strong
+    ><span>Incluye cancelados. Sin valor de venta.</span>
+  </p>
+  <form class="test-filters" (ngSubmit)="filter()">
+    <label class="field"
+      >Estado<select
+        name="status"
+        [(ngModel)]="status"
+        (ngModelChange)="filter()"
+      >
+        <option value="">Todos los estados</option>
+        @for (s of statuses; track s) {
+          <option [value]="s">{{ labels[s] }}</option>
+        }
+      </select></label
+    >
+    <label class="field"
+      >Código de pedido<input
+        name="search"
+        [(ngModel)]="search"
+        maxlength="40"
+        placeholder="TEST-…"
+    /></label>
+    <button type="submit" class="btn btn-outline" [disabled]="busy()">
+      Buscar</button
+    ><button
+      type="button"
+      class="small-ghost"
+      (click)="refresh()"
+      [disabled]="busy()"
+    >
+      Actualizar
+    </button>
+  </form>
+  <p class="test-sync" role="status">
+    @if (updated(); as time) {
+      Última actualización (Perú): {{ time | date: "HH:mm:ss" : "-0500" }} ·
+      Consulta automática cada 30 segundos.
+    } @else {
+      Cargando pedidos…
+    }
+  </p>
+  <div
+    class="test-order-layout"
+    [class.has-detail]="detail() || detailLoading()"
+  >
+    <div class="test-order-list" [attr.aria-busy]="loading()">
+      @for (order of orders(); track order.id) {
+        <article
+          class="test-order-row"
+          [class.selected]="detail()?.order?.id === order.id"
+        >
+          <div class="test-order-row-top">
+            <span class="test-status" [attr.data-status]="order.status">{{
+              labels[order.status]
+            }}</span
+            ><time>{{ order.created_at | date: "dd/MM HH:mm" : "-0500" }}</time>
+          </div>
+          <h4>{{ order.customer_name }}</h4>
+          <p class="test-code">{{ order.code }}</p>
+          <p>
+            {{
+              order.fulfillment === "pickup"
+                ? "Recojo en restaurante"
+                : "Delivery · " + order.delivery_zone_name_snapshot
+            }}
+          </p>
+          <div class="test-order-row-bottom">
+            <strong>{{ price(order.total_cents) }}</strong
+            ><button
+              type="button"
+              class="small-action"
+              (click)="openDetail(order)"
+              [disabled]="busy()"
+            >
+              Ver y atender
+            </button>
+          </div>
+        </article>
+      } @empty {
+        @if (!loading()) {
+          <div class="test-empty">
+            <h3>
+              {{
+                search || status
+                  ? "No hay coincidencias"
+                  : "Todavía no hay pedidos de prueba"
+              }}
+            </h3>
+            <p>
+              {{
+                search || status
+                  ? "Prueba otro código o estado."
+                  : "Crea una simulación desde la carta para ensayar la atención del restaurante."
+              }}
+            </p>
+          </div>
+        }
+      }
+      <div class="test-pagination">
+        <button
+          type="button"
+          class="small-ghost"
+          (click)="changePage(-1)"
+          [disabled]="page === 0 || busy()"
+        >
+          Anterior</button
+        ><span>Página {{ page + 1 }} · {{ count() }} pedidos</span
+        ><button
+          type="button"
+          class="small-ghost"
+          (click)="changePage(1)"
+          [disabled]="(page + 1) * 20 >= count() || busy()"
+        >
+          Siguiente
+        </button>
+      </div>
+    </div>
+    @if (detailLoading() && !detail()) {
+      <aside class="test-order-detail" role="status">Cargando detalle…</aside>
+    }
+    @if (detail(); as selected) {
+      <aside class="test-order-detail" aria-label="Detalle del pedido">
+        <div class="test-toolbar">
+          <h3>Detalle de simulación</h3>
+          <button
+            type="button"
+            class="small-ghost"
+            (click)="closeDetail()"
+            [disabled]="busy()"
+          >
+            Cerrar
+          </button>
+        </div>
+        <span class="test-status" [attr.data-status]="selected.order.status">{{
+          labels[selected.order.status]
+        }}</span>
+        <p class="test-code">{{ selected.order.code }}</p>
+        <h4>{{ selected.order.customer_name }}</h4>
+        <p>Teléfono ficticio: {{ selected.order.customer_phone }}</p>
+        <p>
+          {{
+            selected.order.fulfillment === "pickup"
+              ? "Recojo en restaurante"
+              : "Delivery · " + selected.order.delivery_zone_name_snapshot
+          }}
+        </p>
+        @if (selected.order.fulfillment === "delivery") {
+          <p>{{ selected.order.delivery_address }}</p>
+          @if (selected.order.delivery_reference) {
+            <p>Referencia: {{ selected.order.delivery_reference }}</p>
+          }
+        }
+        @for (item of selected.items; track item.id) {
+          <div class="test-review-line">
+            <div>
+              <strong
+                >{{ item.quantity }} × {{ item.product_name_snapshot }}</strong
+              >
+              @for (opt of item.order_item_options; track $index) {
+                <small
+                  >{{ opt.option_name_snapshot }} · +{{
+                    price(opt.extra_price_cents)
+                  }}</small
+                >
+              }
+            </div>
+            <strong>{{ price(item.line_total_cents) }}</strong>
+          </div>
+        }
+        <div class="test-review-line">
+          <span>Reparto simulado</span
+          ><span>{{ price(selected.order.delivery_fee_cents) }}</span>
+        </div>
+        <div class="test-review-total">
+          <strong>Total de prueba</strong
+          ><strong>{{ price(selected.order.total_cents) }}</strong>
+        </div>
+        @if (selected.order.notes) {
+          <p><strong>Observaciones</strong><br />{{ selected.order.notes }}</p>
+        }
+        @if (access()?.enabled) {
+          @if (pendingStatus(); as pending) {
+            <div class="test-action-confirm">
+              <strong>{{ actionLabel(pending) }}: ¿confirmas el cambio?</strong>
+              @if (pending === "cancelado") {
+                <label class="field"
+                  >Motivo de cancelación<textarea
+                    [(ngModel)]="reason"
+                    maxlength="300"
+                    rows="2"
+                    [disabled]="busy()"
+                  ></textarea>
+                </label>
+              }
+              <div class="test-actions">
+                <button
+                  type="button"
+                  class="btn btn-primary"
+                  (click)="applyStatus()"
+                  [disabled]="busy()"
+                >
+                  {{ busy() ? "Guardando…" : "Confirmar cambio" }}</button
+                ><button
+                  type="button"
+                  class="small-ghost"
+                  (click)="pendingStatus.set(null)"
+                  [disabled]="busy()"
+                >
+                  Volver
+                </button>
+              </div>
+            </div>
+          } @else {
+            <div class="test-actions">
+              @if (next(selected.order); as nextStatus) {
+                <button
+                  type="button"
+                  class="btn btn-primary"
+                  (click)="stage(nextStatus)"
+                >
+                  {{ actionLabel(nextStatus) }}
+                </button>
+              }
+              @if (canCancel(selected.order.status)) {
+                <button
+                  type="button"
+                  class="small-ghost test-danger"
+                  (click)="stage('cancelado')"
+                >
+                  {{
+                    selected.order.status === "pendiente"
+                      ? "Rechazar pedido"
+                      : "Cancelar pedido"
+                  }}
+                </button>
+              }
+            </div>
+          }
+        }
+        <h4>Historial de atención</h4>
+        <ol class="test-history">
+          @for (event of selected.history; track event.id) {
+            <li>
+              <strong>{{ labels[event.new_status] }}</strong
+              ><time>{{
+                event.created_at | date: "dd/MM/yyyy HH:mm:ss" : "-0500"
+              }}</time
+              ><small>Responsable: {{ event.actor_user_id }}</small>
+              @if (event.reason) {
+                <p>{{ event.reason }}</p>
+              }
+            </li>
+          }
+        </ol>
+      </aside>
+    }
+  </div>
+</section>

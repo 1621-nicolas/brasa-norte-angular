@@ -1,21 +1,39 @@
-name: Verificar Angular
+name: Verificar Angular y pedidos de prueba
 on:
   push:
     branches: [main, feat/**]
   pull_request:
     branches: [main]
+permissions:
+  contents: read
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: npm
-      - name: Instalar dependencias
+      - name: Instalar dependencias bloqueadas
         run: npm ci --legacy-peer-deps
       - name: Compilar Angular
         run: npm run build
-      - name: Pruebas unitarias
+      - name: Pruebas de Angular
         run: npm test
+      - name: PostgreSQL desechable, transacciones y aislamiento
+        run: npm run test:db
+      - name: Frontera HTTP y autorización
+        run: npm run test:edge
+      - name: Instalar Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Flujos de escritorio y móvil con datos ficticios
+        run: npm run test:e2e
+      - name: Evidencia del navegador
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-test-results
+          path: test-results/
+          retention-days: 7
