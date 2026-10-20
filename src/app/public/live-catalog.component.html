@@ -15,8 +15,8 @@
         <span class="demo-pill">SOLO DEMOSTRACIÓN</span>
       </div>
       <div class="micro-banner">
-        Personaliza tus productos y arma un carrito de prueba. No se envían pedidos,
-        no se solicitan datos personales ni se cobran pagos.
+        Personaliza tu selección. El equipo autorizado puede registrar pedidos de prueba.
+        No hay ventas, cobros ni entregas reales.
       </div>
 
       @if (cartError()) {
@@ -28,14 +28,17 @@
 
       <div class="live-market-layout">
         <div class="live-market-menu">
+          @if (checkoutOpen()) {
+            <app-test-checkout [menu]="currentMenu" (back)="checkoutOpen.set(false)" (processing)="checkoutBusy.set($event)" />
+          } @else {
           @for (category of currentMenu.categories; track category.id) {
             <h2 class="cloud-category">{{ category.name }}</h2>
             <div class="cloud-products live-food-grid">
               @for (p of productsInCategory(category.id); track p.id) {
                 <article class="cloud-product live-food-card">
                   <div class="live-food-image">
-                    @if (p.image_url) {
-                      <img [src]="p.image_url" [alt]="'Fotografía de ' + p.name" loading="lazy">
+                    @if (p.image_url && !brokenImages()[p.id]) {
+                      <img [src]="p.image_url" (error)="imageFailed(p.id)" [alt]="'Fotografía de ' + p.name" loading="lazy">
                     } @else {
                       <span aria-hidden="true">{{ p.emoji }}</span>
                     }
@@ -103,6 +106,7 @@
           } @empty {
             <p>Este restaurante todavía no tiene categorías publicadas.</p>
           }
+          }
         </div>
 
         @if (cartOpen()) {
@@ -121,11 +125,11 @@
           @for (line of cart.lines(); track line.id) {
             <div class="live-cart-line">
               <div class="live-cart-line-main">
-                <span class="live-cart-line-emoji">{{ line.emoji }}</span>
+                <span class="live-cart-line-emoji">@if(line.imageUrl && !brokenImages()[line.productId]){<img [src]="line.imageUrl" [alt]="line.name" (error)="imageFailed(line.productId)">} @else{ {{ line.emoji }} }</span>
                 <div>
                   <strong>{{ line.name }}</strong>
                   @for (opt of line.options; track opt.id) {
-                    <small>{{ opt.groupName }}: {{ opt.name }}
+                    <small>{{ opt.name }}
                       @if (opt.extraPriceCents) { (+{{ price(opt.extraPriceCents) }}) }
                     </small>
                   }
@@ -133,16 +137,16 @@
               </div>
               <div class="live-cart-line-actions">
                 <div class="live-stepper" role="group" [attr.aria-label]="'Cantidad de ' + line.name + ' en carrito'">
-                  <button type="button" [disabled]="line.quantity===1"
+                  <button type="button" [disabled]="line.quantity===1 || checkoutBusy()"
                     (click)="changeCartQuantity(line.id,-1)"
                     [attr.aria-label]="'Restar ' + line.name">−</button>
                   <span>{{ line.quantity }}</span>
-                  <button type="button" [disabled]="line.quantity===20"
+                  <button type="button" [disabled]="line.quantity===20 || checkoutBusy()"
                     (click)="changeCartQuantity(line.id,1)"
                     [attr.aria-label]="'Sumar ' + line.name">+</button>
                 </div>
                 <strong>{{ price(lineTotal(line)) }}</strong>
-                <button type="button" class="live-cart-remove" (click)="removeCartLine(line.id)"
+                <button type="button" class="live-cart-remove" [disabled]="checkoutBusy()" (click)="removeCartLine(line.id)"
                   [attr.aria-label]="'Quitar ' + line.name">Quitar</button>
               </div>
             </div>
@@ -158,12 +162,12 @@
               <span>Subtotal de prueba</span>
               <strong>{{ price(cart.subtotalCents()) }}</strong>
             </div>
-            <p>Sin tarifa de reparto. Importes informativos, no son una cotización ni una venta.</p>
-            <button type="button" class="btn btn-primary live-cart-checkout" disabled>
-              Pedidos reales desactivados
+            <p>Importes provisionales. El servidor comprobará precios y reparto antes de confirmar.</p>
+            <button type="button" class="btn btn-primary live-cart-checkout" [disabled]="!cart.lines().length || checkoutBusy()" (click)="openCheckout()">
+              Revisar pedido de prueba
             </button>
             @if (cart.lines().length) {
-              <button type="button" class="live-clear-button" (click)="clearCart()">Vaciar carrito</button>
+              <button type="button" class="live-clear-button" [disabled]="checkoutBusy()" (click)="clearCart()">Vaciar carrito</button>
             }
           </div>
         </aside>
